@@ -17,6 +17,8 @@
 #include "src/wasm/wasm-code-manager.h"
 #include "src/wasm/wasm-objects.h"
 
+#include <iostream>
+
 namespace v8 {
 namespace internal {
 namespace compiler {
@@ -669,6 +671,50 @@ void EmitWordLoadPoisoningIfNeeded(
     __ cmp_inst(i.OutputRegister(), r0, cr0);                                \
     __ bne(&exit, cr0);                                                      \
     __ store_inst(i.InputRegister(3), operand);                              \
+    __ bne(&loop, cr0);                                                      \
+    __ bind(&exit);                                                          \
+    __ sync();                                                               \
+  } while (false)
+
+#define ASSEMBLE_ATOMIC_PAIR_BINOP(instr)                                    \
+  do {                                                                       \
+    Label binop;                                                             \
+    __ lwsync();                                                             \
+    __ bind(&binop);                                                         \
+    MemOperand operand = MemOperand(i.InputRegister(0), i.InputRegister(1)); \
+    __ lwarx(i.OutputRegister(0), operand);                                  \
+    __ instr(kScratchReg, i.OutputRegister(0), i.InputRegister(2));          \
+    __ stwcx(kScratchReg, operand);                                          \
+    __ bne(&binop, cr0);                                                     \
+    __ addi(i.TempRegister(0), i.InputRegister(1), Operand(4));              \
+    operand = MemOperand(i.InputRegister(0), i.TempRegister(0));             \
+    __ lwarx(i.OutputRegister(1), operand);                                  \
+    __ instr(kScratchReg, i.OutputRegister(1), i.InputRegister(3));          \
+    __ stwcx(kScratchReg, operand);                                          \
+    __ bne(&binop, cr0);                                                     \
+    __ sync();                                                               \
+  } while (false)
+
+#define ASSEMBLE_ATOMIC_PAIR_COMPARE_EXCHANGE(instr)                         \
+  do {                                                                       \
+    Label loop;                                                              \
+    Label exit;                                                              \
+    __ ZeroExtWord32(r0, i.InputRegister(2));                                \
+    __ ZeroExtWord32(r0, i.InputRegister(3));                                \
+    __ lwsync();                                                             \
+    __ bind(&loop);                                                          \
+    MemOperand operand = MemOperand(i.InputRegister(0), i.InputRegister(1)); \
+    __ lwarx(i.OutputRegister(0), operand);                                  \
+    __ cmpw(i.OutputRegister(0), r0, cr0);                                   \
+    __ bne(&exit, cr0);                                                      \
+    __ stwcx(i.InputRegister(3), operand);                                   \
+    __ bne(&loop, cr0);                                                      \
+    __ addi(i.TempRegister(0), i.InputRegister(1), Operand(4));              \
+    operand = MemOperand(i.InputRegister(0), i.TempRegister(0));             \
+    __ lwarx(i.OutputRegister(1), operand);                                  \
+    __ cmpw(i.OutputRegister(1), r0, cr0);                                   \
+    __ bne(&exit, cr0);                                                      \
+    __ stwcx(i.InputRegister(2), operand);                                   \
     __ bne(&loop, cr0);                                                      \
     __ bind(&exit);                                                          \
     __ sync();                                                               \
@@ -1628,7 +1674,17 @@ CodeGenerator::CodeGenResult CodeGenerator::AssembleArchInstruction(
       ASSEMBLE_FLOAT_UNOP_RC(fabs, 0);
       break;
     case kPPC_SqrtDouble:
+#ifdef V8_TARGET_ARCH_PPC64
       ASSEMBLE_FLOAT_UNOP_RC(fsqrt, MiscField::decode(instr->opcode()));
+#else
+    __ frsqrte(i.OutputDoubleRegister(), i.InputDoubleRegister(0),
+              i.OutputRCBit());
+    __ fmul(i.OutputDoubleRegister(), i.OutputDoubleRegister(),
+              i.InputDoubleRegister(0), i.OutputRCBit());
+    if (MiscField::decode(instr->opcode())) {
+      __ frsp(i.OutputDoubleRegister(), i.OutputDoubleRegister());
+    }
+#endif
       break;
     case kPPC_FloorDouble:
       ASSEMBLE_FLOAT_UNOP_RC(frim, MiscField::decode(instr->opcode()));
@@ -1820,6 +1876,10 @@ CodeGenerator::CodeGenResult CodeGenerator::AssembleArchInstruction(
       break;
     case kPPC_DoubleToInt32:
     case kPPC_DoubleToUint32:
+#if !V8_TARGET_ARCH_PPC64
+      __ ConvertDoubleToInt32NoPPC64(i.InputDoubleRegister(0), i.OutputRegister());
+    break;
+#endif
     case kPPC_DoubleToInt64: {
 #if V8_TARGET_ARCH_PPC64
       bool check_conversion =
@@ -1990,11 +2050,13 @@ CodeGenerator::CodeGenResult CodeGenerator::AssembleArchInstruction(
     case kWord32AtomicLoadInt16:
     case kPPC_AtomicLoadUint16:
     case kPPC_AtomicLoadWord32:
-    case kPPC_AtomicLoadWord64:
     case kPPC_AtomicStoreUint8:
     case kPPC_AtomicStoreUint16:
     case kPPC_AtomicStoreWord32:
+#if V8_TARGET_ARCH_PPC64
+    case kPPC_AtomicLoadWord64:
     case kPPC_AtomicStoreWord64:
+#endif
       UNREACHABLE();
     case kWord32AtomicExchangeInt8:
       ASSEMBLE_ATOMIC_EXCHANGE_INTEGER(lbarx, stbcx);
@@ -2013,9 +2075,11 @@ CodeGenerator::CodeGenResult CodeGenerator::AssembleArchInstruction(
     case kPPC_AtomicExchangeWord32:
       ASSEMBLE_ATOMIC_EXCHANGE_INTEGER(lwarx, stwcx);
       break;
+#if V8_TARGET_ARCH_PPC64
     case kPPC_AtomicExchangeWord64:
       ASSEMBLE_ATOMIC_EXCHANGE_INTEGER(ldarx, stdcx);
       break;
+#endif
     case kWord32AtomicCompareExchangeInt8:
       ASSEMBLE_ATOMIC_COMPARE_EXCHANGE_SIGN_EXT(cmp, lbarx, stbcx, extsb);
       break;
@@ -2031,11 +2095,13 @@ CodeGenerator::CodeGenResult CodeGenerator::AssembleArchInstruction(
     case kPPC_AtomicCompareExchangeWord32:
       ASSEMBLE_ATOMIC_COMPARE_EXCHANGE(cmpw, lwarx, stwcx, ZeroExtWord32);
       break;
+#if V8_TARGET_ARCH_PPC64
     case kPPC_AtomicCompareExchangeWord64:
       ASSEMBLE_ATOMIC_COMPARE_EXCHANGE(cmp, ldarx, stdcx, mr);
       break;
+#endif
 
-#define ATOMIC_BINOP_CASE(op, inst)                            \
+#define ATOMIC_BINOP_CASE_COMMON(op, inst)                     \
   case kPPC_Atomic##op##Int8:                                  \
     ASSEMBLE_ATOMIC_BINOP_SIGN_EXT(inst, lbarx, stbcx, extsb); \
     break;                                                     \
@@ -2053,11 +2119,18 @@ CodeGenerator::CodeGenResult CodeGenerator::AssembleArchInstruction(
     break;                                                     \
   case kPPC_Atomic##op##Uint32:                                \
     ASSEMBLE_ATOMIC_BINOP(inst, lwarx, stwcx);                 \
-    break;                                                     \
-  case kPPC_Atomic##op##Int64:                                 \
-  case kPPC_Atomic##op##Uint64:                                \
-    ASSEMBLE_ATOMIC_BINOP(inst, ldarx, stdcx);                 \
     break;
+
+#if V8_TARGET_ARCH_PPC64
+#define ATOMIC_BINOP_CASE(op, inst)            \
+  ATOMIC_BINOP_CASE_COMMON(op, inst)           \
+  case kPPC_Atomic##op##Int64:                 \
+  case kPPC_Atomic##op##Uint64:                \
+    ASSEMBLE_ATOMIC_BINOP(inst, ldarx, stdcx); \
+    break;
+#else
+#define ATOMIC_BINOP_CASE(op, inst) ATOMIC_BINOP_CASE_COMMON(op, inst)
+#endif
       ATOMIC_BINOP_CASE(Add, add)
       ATOMIC_BINOP_CASE(Sub, sub)
       ATOMIC_BINOP_CASE(And, and_)
@@ -2068,7 +2141,11 @@ CodeGenerator::CodeGenResult CodeGenerator::AssembleArchInstruction(
     case kPPC_ByteRev32: {
       Register input = i.InputRegister(0);
       Register output = i.OutputRegister();
+#if V8_TARGET_ARCH_PPC64
       Register temp1 = r0;
+#else
+      Register temp1 = output;
+#endif
       __ rotlwi(temp1, input, 8);
       __ rlwimi(temp1, input, 24, 0, 7);
       __ rlwimi(temp1, input, 24, 16, 23);
@@ -2094,8 +2171,85 @@ CodeGenerator::CodeGenResult CodeGenerator::AssembleArchInstruction(
       break;
     }
 #endif  // V8_TARGET_ARCH_PPC64
+#ifdef V8_TARGET_ARCH_PPC
+    case kPPC_AtomicPairLoadWord32: {
+      Label atomic_pair_load;
+      __ lwsync();
+      __ bind(&atomic_pair_load);
+      __ addi(i.TempRegister(0), i.InputRegister(1), Operand(4));
+      __ lwarx(i.OutputRegister(0),
+               MemOperand(i.InputRegister(0), i.InputRegister(1)));
+      __ lwsync();
+      __ lwz(i.OutputRegister(1),
+             MemOperand(i.InputRegister(0), i.TempRegister(0)));
+      __ lwsync();
+      __ stwcx(i.OutputRegister(0),
+               MemOperand(i.InputRegister(0), i.InputRegister(1)));
+      __ bne(&atomic_pair_load, cr0);
+      __ sync();
+      break;
+    }
+    case kPPC_AtomicPairStoreWord32: {
+      Label atomic_pair_store;
+      __ lwsync();
+      __ bind(&atomic_pair_store);
+      __ addi(i.TempRegister(0), i.InputRegister(1), Operand(4));
+      __ lwarx(kScratchReg, MemOperand(i.InputRegister(0), i.InputRegister(1)));
+      __ lwsync();
+      __ stw(i.InputRegister(3),
+             MemOperand(i.InputRegister(0), i.TempRegister(0)));
+      __ lwsync();
+      __ stwcx(i.InputRegister(2),
+               MemOperand(i.InputRegister(0), i.InputRegister(1)));
+      __ bne(&atomic_pair_store, cr0);
+      __ sync();
+      DCHECK_EQ(LeaveRC, i.OutputRCBit());
+      break;
+    }
+    case kPPC_AtomicPairAddWord32: {
+      ASSEMBLE_ATOMIC_PAIR_BINOP(add);
+      break;
+    }
+    case kPPC_AtomicPairSubWord32: {
+      ASSEMBLE_ATOMIC_PAIR_BINOP(sub);
+      break;
+    }
+    case kPPC_AtomicPairAndWord32: {
+      ASSEMBLE_ATOMIC_PAIR_BINOP(and_);
+      break;
+    }
+    case kPPC_AtomicPairOrWord32: {
+      ASSEMBLE_ATOMIC_PAIR_BINOP(orx);
+      break;
+    }
+    case kPPC_AtomicPairXorWord32: {
+      ASSEMBLE_ATOMIC_PAIR_BINOP(xor_);
+      break;
+    }
+    case kPPC_AtomicPairExchangeWord32: {
+      do {
+        Label exchange;
+        __ lwsync();
+        __ bind(&exchange);
+        MemOperand operand = MemOperand(i.InputRegister(0), i.InputRegister(1));
+        __ lwarx(i.OutputRegister(0), operand);
+        __ stwcx(i.InputRegister(2), operand);
+        __ addi(i.TempRegister(0), i.InputRegister(1), Operand(4));
+        operand = MemOperand(i.InputRegister(0), i.TempRegister(0));
+        __ lwarx(i.OutputRegister(1), operand);
+        __ stwcx(i.InputRegister(3), operand);
+        __ bne(&exchange, cr0);
+        __ sync();
+      } while (false);
+      break;
+    }
+    case kPPC_AtomicPairCompareExchangeWord32: {
+      ASSEMBLE_ATOMIC_PAIR_COMPARE_EXCHANGE(cmpw);
+      break;
+    }
+#endif
     default:
-      UNREACHABLE();
+    UNREACHABLE();
   }
   return kSuccess;
 }  // NOLINT(readability/fn_size)

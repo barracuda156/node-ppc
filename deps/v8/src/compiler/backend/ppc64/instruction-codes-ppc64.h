@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef V8_COMPILER_BACKEND_PPC_INSTRUCTION_CODES_PPC_H_
-#define V8_COMPILER_BACKEND_PPC_INSTRUCTION_CODES_PPC_H_
+#ifndef V8_COMPILER_BACKEND_PPC64_INSTRUCTION_CODES_PPC64_H_
+#define V8_COMPILER_BACKEND_PPC64_INSTRUCTION_CODES_PPC64_H_
 
 namespace v8 {
 namespace internal {
@@ -118,72 +118,76 @@ namespace compiler {
   V(PPC_LoadWordU16)                 \
   V(PPC_LoadWordS32)                 \
   V(PPC_LoadWordU32)                 \
+  V(PPC_LoadWord64)                  \
   V(PPC_LoadFloat32)                 \
   V(PPC_LoadDouble)                  \
   V(PPC_StoreWord8)                  \
   V(PPC_StoreWord16)                 \
   V(PPC_StoreWord32)                 \
+  V(PPC_StoreWord64)                 \
   V(PPC_StoreFloat32)                \
   V(PPC_StoreDouble)                 \
   V(PPC_ByteRev32)                   \
   V(PPC_ByteRev64)                   \
-  V(PPC_DecompressSigned)            \
-  V(PPC_DecompressPointer)           \
-  V(PPC_DecompressAny)               \
   V(PPC_CompressSigned)              \
   V(PPC_CompressPointer)             \
   V(PPC_CompressAny)                 \
   V(PPC_AtomicStoreUint8)            \
   V(PPC_AtomicStoreUint16)           \
   V(PPC_AtomicStoreWord32)           \
+  V(PPC_AtomicStoreWord64)           \
   V(PPC_AtomicLoadUint8)             \
   V(PPC_AtomicLoadUint16)            \
   V(PPC_AtomicLoadWord32)            \
+  V(PPC_AtomicLoadWord64)            \
   V(PPC_AtomicExchangeUint8)         \
   V(PPC_AtomicExchangeUint16)        \
   V(PPC_AtomicExchangeWord32)        \
+  V(PPC_AtomicExchangeWord64)        \
   V(PPC_AtomicCompareExchangeUint8)  \
   V(PPC_AtomicCompareExchangeUint16) \
   V(PPC_AtomicCompareExchangeWord32) \
+  V(PPC_AtomicCompareExchangeWord64) \
   V(PPC_AtomicAddUint8)              \
   V(PPC_AtomicAddUint16)             \
   V(PPC_AtomicAddUint32)             \
+  V(PPC_AtomicAddUint64)             \
   V(PPC_AtomicAddInt8)               \
   V(PPC_AtomicAddInt16)              \
   V(PPC_AtomicAddInt32)              \
+  V(PPC_AtomicAddInt64)              \
   V(PPC_AtomicSubUint8)              \
   V(PPC_AtomicSubUint16)             \
   V(PPC_AtomicSubUint32)             \
+  V(PPC_AtomicSubUint64)             \
   V(PPC_AtomicSubInt8)               \
   V(PPC_AtomicSubInt16)              \
   V(PPC_AtomicSubInt32)              \
+  V(PPC_AtomicSubInt64)              \
   V(PPC_AtomicAndUint8)              \
   V(PPC_AtomicAndUint16)             \
   V(PPC_AtomicAndUint32)             \
+  V(PPC_AtomicAndUint64)             \
   V(PPC_AtomicAndInt8)               \
   V(PPC_AtomicAndInt16)              \
   V(PPC_AtomicAndInt32)              \
+  V(PPC_AtomicAndInt64)              \
   V(PPC_AtomicOrUint8)               \
   V(PPC_AtomicOrUint16)              \
   V(PPC_AtomicOrUint32)              \
+  V(PPC_AtomicOrUint64)              \
   V(PPC_AtomicOrInt8)                \
   V(PPC_AtomicOrInt16)               \
   V(PPC_AtomicOrInt32)               \
+  V(PPC_AtomicOrInt64)               \
   V(PPC_AtomicXorUint8)              \
   V(PPC_AtomicXorUint16)             \
   V(PPC_AtomicXorUint32)             \
+  V(PPC_AtomicXorUint64)             \
   V(PPC_AtomicXorInt8)               \
   V(PPC_AtomicXorInt16)              \
   V(PPC_AtomicXorInt32)              \
-  V(PPC_AtomicPairLoadWord32)        \
-  V(PPC_AtomicPairStoreWord32)       \
-  V(PPC_AtomicPairAddWord32)         \
-  V(PPC_AtomicPairSubWord32)         \
-  V(PPC_AtomicPairAndWord32)         \
-  V(PPC_AtomicPairOrWord32)          \
-  V(PPC_AtomicPairXorWord32)         \
-  V(PPC_AtomicPairExchangeWord32)    \
-  V(PPC_AtomicPairCompareExchangeWord32)
+  V(PPC_AtomicXorInt64)
 
 // Addressing modes represent the "shape" of inputs to an instruction.
 // Many instructions support multiple addressing modes. Addressing modes
@@ -206,4 +210,4 @@ namespace compiler {
 }  // namespace internal
 }  // namespace v8
 
-#endif  // V8_COMPILER_BACKEND_PPC_INSTRUCTION_CODES_PPC_H_
+#endif  // V8_COMPILER_BACKEND_PPC64_INSTRUCTION_CODES_PPC64_H_

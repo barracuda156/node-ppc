@@ -69,6 +69,13 @@ class V8_EXPORT_PRIVATE TurboAssembler : public TurboAssemblerBase {
  public:
   using TurboAssemblerBase::TurboAssemblerBase;
 
+  #if V8_TARGET_ARCH_PPC
+  void ConvertIntToFloatingPointNoPPC64(Register src,
+    DoubleRegister double_dst,
+    bool result_is_a_float,
+    bool src_is_unsigned);
+  #endif
+
   // Converts the integer (untagged smi) in |src| to a double, storing
   // the result to |dst|
   void ConvertIntToDouble(Register src, DoubleRegister dst);

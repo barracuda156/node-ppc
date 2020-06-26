@@ -5,7 +5,7 @@
 #include <assert.h>  // For assert
 #include <limits.h>  // For LONG_MIN, LONG_MAX.
 
-#if V8_TARGET_ARCH_PPC
+#if V8_TARGET_ARCH_PPC || V8_TARGET_ARCH_PPC64
 
 #include "src/base/bits.h"
 #include "src/base/division-by-constant.h"
@@ -23,6 +23,16 @@
 #include "src/snapshot/embedded/embedded-data.h"
 #include "src/snapshot/snapshot.h"
 #include "src/wasm/wasm-code-manager.h"
+
+#include <iostream>
+
+#if __FLOAT_WORD_ORDER == __LITTLE_ENDIAN
+#define LO_WORD_OFFSET 0
+#define HI_WORD_OFFSET 4
+#else
+#define LO_WORD_OFFSET 4
+#define HI_WORD_OFFSET 0
+#endif
 
 // Satisfy cpplint check, but don't include platform-specific header. It is
 // included recursively via macro-assembler.h.
@@ -693,26 +703,106 @@ void TurboAssembler::CanonicalizeNaN(const DoubleRegister dst,
   fsub(dst, src, kDoubleRegZero);
 }
 
+void TurboAssembler::ConvertIntToFloatingPointNoPPC64(Register src,
+    DoubleRegister double_dst,
+    bool result_is_a_float,
+    bool src_is_unsigned) {
+
+    Register scratch = r11;
+    DoubleRegister double_scratch = kScratchDoubleReg;
+
+  subi(sp, sp, Operand(8));  // reserve one temporary double on the stack
+
+  // sign-extend src to 64-bit and store it to temp double on the stack
+#if V8_TARGET_ARCH_PPC64
+  extsw(r0, src);
+  std(r0, MemOperand(sp, 0));
+#else
+  srawi(r0, src, 31);
+#if __FLOAT_WORD_ORDER == __LITTLE_ENDIAN
+  stw(r0, MemOperand(sp, 4));
+  stw(src, MemOperand(sp, 0));
+#else
+  stw(r0, MemOperand(sp, 0));
+  stw(src, MemOperand(sp, 4));
+#endif
+#endif
+  if (src_is_unsigned) {
+    // load 0x4330000000000000 into double_scratch
+    lis(scratch, Operand(0x4330));
+    stw(scratch, MemOperand(sp, HI_WORD_OFFSET));
+    lis(scratch, Operand::Zero());
+    stw(scratch, MemOperand(sp, LO_WORD_OFFSET));
+    lfd(double_scratch, MemOperand(sp, 0));
+
+    // load 0x1.00000dddddddd x10^D into double_dst
+    lis(scratch, Operand(0x4330));
+    stw(scratch, MemOperand(sp, HI_WORD_OFFSET));
+    stw(src, MemOperand(sp, LO_WORD_OFFSET));
+  } else {
+    // load 0x4330000080000000 into double_scratch
+    lis(scratch, Operand(0x4330));
+    stw(scratch, MemOperand(sp, HI_WORD_OFFSET));
+    lis(scratch, Operand(-0x8000));
+    stw(scratch, MemOperand(sp, LO_WORD_OFFSET));
+    lfd(double_scratch, MemOperand(sp, 0));
+
+  // load into FPR
+    // load 0x1.00000dddddddd x10^D into double_dst
+    lis(scratch, Operand(0x4330));
+    stw(scratch, MemOperand(sp, HI_WORD_OFFSET));
+    xoris(scratch, src, Operand(0x8000));
+    stw(scratch, MemOperand(sp, LO_WORD_OFFSET));
+  }
+
+  // Convert to double word FP from stack
+  lfd(double_dst, MemOperand(sp, 0));
+  fsub(double_dst, double_dst, double_scratch);
+
+  addi(sp, sp, Operand(8));  // restore stack
+
+  if (result_is_a_float) {
+    // Round to single word FP
+    frsp(double_dst, double_dst);
+  }
+}
+
 void TurboAssembler::ConvertIntToDouble(Register src, DoubleRegister dst) {
+#ifdef V8_TARGET_ARCH_PPC64
   MovIntToDouble(dst, src, r0);
   fcfid(dst, dst);
+#else
+  ConvertIntToFloatingPointNoPPC64(src, dst, false, false);
+#endif
 }
 
 void TurboAssembler::ConvertUnsignedIntToDouble(Register src,
                                                 DoubleRegister dst) {
+#ifdef V8_TARGET_ARCH_PPC64
   MovUnsignedIntToDouble(dst, src, r0);
   fcfid(dst, dst);
+#else
+  ConvertIntToFloatingPointNoPPC64(src, dst, false, true);
+#endif
 }
 
 void TurboAssembler::ConvertIntToFloat(Register src, DoubleRegister dst) {
-  MovIntToDouble(dst, src, r0);
-  fcfids(dst, dst);
+#ifdef V8_TARGET_ARCH_PPC64
+  MovUnsignedIntToDouble(dst, src, r0);
+  fcfid(dst, dst);
+#else
+  ConvertIntToFloatingPointNoPPC64(src, dst, true, false);
+#endif
 }
 
 void TurboAssembler::ConvertUnsignedIntToFloat(Register src,
                                                DoubleRegister dst) {
+#ifdef V8_TARGET_ARCH_PPC64
   MovUnsignedIntToDouble(dst, src, r0);
   fcfids(dst, dst);
+#else
+  ConvertIntToFloatingPointNoPPC64(src, dst, true, true);
+#endif
 }
 
 #if V8_TARGET_ARCH_PPC64
@@ -748,6 +838,7 @@ void TurboAssembler::ConvertDoubleToInt64(const DoubleRegister double_input,
                                           const Register dst,
                                           const DoubleRegister double_dst,
                                           FPRoundingMode rounding_mode) {
+#if V8_TARGET_ARCH_PPC64
   if (rounding_mode == kRoundToZero) {
     fctidz(double_dst, double_input);
   } else {
@@ -755,6 +846,7 @@ void TurboAssembler::ConvertDoubleToInt64(const DoubleRegister double_input,
     fctid(double_dst, double_input);
     ResetRoundingMode();
   }
+#endif
 
   MovDoubleToInt64(
 #if !V8_TARGET_ARCH_PPC64
@@ -2446,7 +2538,7 @@ void MacroAssembler::AddSmiLiteral(Register dst, Register src, Smi smi,
   LoadSmiLiteral(scratch, smi);
   add(dst, src, scratch);
 #else
-  Add(dst, src, reinterpret_cast<intptr_t>(smi), scratch);
+  Add(dst, src, reinterpret_cast<uintptr_t>(smi.ptr()), scratch);
 #endif
 }
 
@@ -2456,7 +2548,7 @@ void MacroAssembler::SubSmiLiteral(Register dst, Register src, Smi smi,
   LoadSmiLiteral(scratch, smi);
   sub(dst, src, scratch);
 #else
-  Add(dst, src, -(reinterpret_cast<intptr_t>(smi)), scratch);
+  Add(dst, src, -(reinterpret_cast<uintptr_t>(smi.ptr())), scratch);
 #endif
 }
 
@@ -2489,9 +2581,17 @@ void TurboAssembler::LoadP(Register dst, const MemOperand& mem,
       // Todo: enhance to use scratch if dst is unsuitable
       DCHECK_NE(dst, r0);
       addi(dst, mem.ra(), Operand(adj));
+#if V8_TARGET_ARCH_PPC64
       ld(dst, MemOperand(dst, alignedOffset));
+#else
+      lwz(dst, MemOperand(dst, alignedOffset));
+#endif
     } else {
+#if V8_TARGET_ARCH_PPC64
       ld(dst, mem);
+#else
+      lwz(dst, mem);
+#endif
     }
   }
 }
@@ -2953,15 +3053,26 @@ void TurboAssembler::JumpIfLessThan(Register x, int32_t y, Label* dest) {
 }
 
 void TurboAssembler::LoadEntryFromBuiltinIndex(Register builtin_index) {
-  STATIC_ASSERT(kSystemPointerSize == 8);
-  STATIC_ASSERT(kSmiShiftSize == 31);
+#if V8_TARGET_ARCH_PPC64
+   STATIC_ASSERT(kSystemPointerSize == 8);
+   STATIC_ASSERT(kSmiShiftSize == 31);
+#else
+  STATIC_ASSERT(kSystemPointerSize == 4);
+  STATIC_ASSERT(kSmiShiftSize == 0);
+#endif
   STATIC_ASSERT(kSmiTagSize == 1);
   STATIC_ASSERT(kSmiTag == 0);
 
+
   // The builtin_index register contains the builtin index as a Smi.
   // Untagging is folded into the indexing operand below.
+#ifdef V8_TARGET_ARCH_PPC64
   ShiftRightArithImm(builtin_index, builtin_index,
                      kSmiShift - kSystemPointerSizeLog2);
+#else
+  ShiftLeftImm(builtin_index, builtin_index,
+                     Operand(kSystemPointerSizeLog2 - kSmiTagSize));
+#endif
   addi(builtin_index, builtin_index,
        Operand(IsolateData::builtin_entry_table_offset()));
   LoadPX(builtin_index, MemOperand(kRootRegister, builtin_index));
@@ -3076,18 +3187,30 @@ void TurboAssembler::CallForDeoptimization(Address target, int deopt_id) {
 }
 
 void TurboAssembler::ZeroExtByte(Register dst, Register src) {
+#if V8_TARGET_ARCH_PPC64
   clrldi(dst, src, Operand(56));
+#else
+  clrlwi(dst, src, Operand(24));
+#endif
 }
 
 void TurboAssembler::ZeroExtHalfWord(Register dst, Register src) {
+#if V8_TARGET_ARCH_PPC64
   clrldi(dst, src, Operand(48));
+#else
+  clrlwi(dst, src, Operand(16));
+#endif
 }
 
 void TurboAssembler::ZeroExtWord32(Register dst, Register src) {
+#if V8_TARGET_ARCH_PPC64
   clrldi(dst, src, Operand(32));
+#else
+  clrlwi(dst, src, Operand(32));
+#endif
 }
 
 }  // namespace internal
 }  // namespace v8
 
-#endif  // V8_TARGET_ARCH_PPC
+#endif  // V8_TARGET_ARCH_PPC || V8_TARGET_ARCH_PPC64
