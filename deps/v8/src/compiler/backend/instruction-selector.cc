@@ -2376,8 +2376,6 @@ void InstructionSelector::VisitWord64ReverseBits(Node* node) {
 
 void InstructionSelector::VisitWord64Popcnt(Node* node) { UNIMPLEMENTED(); }
 
-void InstructionSelector::VisitWord64Equal(Node* node) { UNIMPLEMENTED(); }
-
 void InstructionSelector::VisitInt64Add(Node* node) { UNIMPLEMENTED(); }
 
 void InstructionSelector::VisitInt64AddWithOverflow(Node* node) {
@@ -2394,21 +2392,9 @@ void InstructionSelector::VisitInt64Mul(Node* node) { UNIMPLEMENTED(); }
 
 void InstructionSelector::VisitInt64Div(Node* node) { UNIMPLEMENTED(); }
 
-void InstructionSelector::VisitInt64LessThan(Node* node) { UNIMPLEMENTED(); }
-
-void InstructionSelector::VisitInt64LessThanOrEqual(Node* node) {
-  UNIMPLEMENTED();
-}
-
 void InstructionSelector::VisitUint64Div(Node* node) { UNIMPLEMENTED(); }
 
 void InstructionSelector::VisitInt64Mod(Node* node) { UNIMPLEMENTED(); }
-
-void InstructionSelector::VisitUint64LessThan(Node* node) { UNIMPLEMENTED(); }
-
-void InstructionSelector::VisitUint64LessThanOrEqual(Node* node) {
-  UNIMPLEMENTED();
-}
 
 void InstructionSelector::VisitUint64Mod(Node* node) { UNIMPLEMENTED(); }
 

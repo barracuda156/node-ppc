@@ -1187,11 +1187,12 @@ CodeGenerator::CodeGenResult CodeGenerator::AssembleArchInstruction(
       __ cmpl(sp, i.InputRegister(kValueIndex), cr0);
       break;
     }
-    case kArchTruncateDoubleToI:
+    case kArchTruncateDoubleToI: {
       __ TruncateDoubleToI(isolate(), zone(), i.OutputRegister(),
                            i.InputDoubleRegister(0), DetermineStubCallMode());
       DCHECK_EQ(LeaveRC, i.OutputRCBit());
       break;
+    }
     case kArchStoreWithWriteBarrier: {
       RecordWriteMode mode =
           static_cast<RecordWriteMode>(MiscField::decode(instr->opcode()));
@@ -1724,11 +1725,9 @@ CodeGenerator::CodeGenResult CodeGenerator::AssembleArchInstruction(
     case kPPC_Cmp32:
       ASSEMBLE_COMPARE(cmpw, cmplw);
       break;
-#if V8_TARGET_ARCH_PPC64
     case kPPC_Cmp64:
       ASSEMBLE_COMPARE(cmp, cmpl);
       break;
-#endif
     case kPPC_CmpDouble:
       ASSEMBLE_FLOAT_COMPARE(fcmpu);
       break;
@@ -1877,8 +1876,12 @@ CodeGenerator::CodeGenResult CodeGenerator::AssembleArchInstruction(
     case kPPC_DoubleToInt32:
     case kPPC_DoubleToUint32:
 #if !V8_TARGET_ARCH_PPC64
-      __ ConvertDoubleToInt32NoPPC64(i.InputDoubleRegister(0), i.OutputRegister());
-    break;
+    {
+      Register scratch = kScratchReg;
+      __ ConvertDoubleToInt32NoPPC64(i.InputDoubleRegister(0), i.OutputRegister(), scratch);
+      __ TestIfInt32(scratch,  i.OutputRegister(), r0);
+      break;
+    }
 #endif
     case kPPC_DoubleToInt64: {
 #if V8_TARGET_ARCH_PPC64

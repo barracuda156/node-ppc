@@ -74,6 +74,10 @@ class V8_EXPORT_PRIVATE TurboAssembler : public TurboAssemblerBase {
     DoubleRegister double_dst,
     bool result_is_a_float,
     bool src_is_unsigned);
+  void ConvertDoubleToInt32NoPPC64(DoubleRegister src,
+                                Register dest,
+                                Register dest_hi,
+                                FPRoundingMode rounding_mode = kRoundToZero);
   #endif
 
   // Converts the integer (untagged smi) in |src| to a double, storing

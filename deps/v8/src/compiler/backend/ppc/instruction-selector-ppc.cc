@@ -317,6 +317,7 @@ void InstructionSelector::VisitStore(Node* node) {
       case MachineRepresentation::kTaggedSigned:   // Fall through.
       case MachineRepresentation::kTaggedPointer:  // Fall through.
       case MachineRepresentation::kTagged:         // Fall through.
+        mode = kInt16Imm_4ByteAligned;
 #endif
       case MachineRepresentation::kWord32:
         opcode = kPPC_StoreWord32;
@@ -1483,13 +1484,11 @@ void VisitWord32Compare(InstructionSelector* selector, Node* node,
   VisitWordCompare(selector, node, kPPC_Cmp32, cont, false, mode);
 }
 
-#if V8_TARGET_ARCH_PPC64
 void VisitWord64Compare(InstructionSelector* selector, Node* node,
                         FlagsContinuation* cont) {
   ImmediateMode mode = (CompareLogical(cont) ? kInt16Imm_Unsigned : kInt16Imm);
   VisitWordCompare(selector, node, kPPC_Cmp64, cont, false, mode);
 }
-#endif
 
 // Shared routine for multiple float32 compare operations.
 void VisitFloat32Compare(InstructionSelector* selector, Node* node,
@@ -1543,7 +1542,6 @@ void InstructionSelector::VisitWordCompareZero(Node* user, Node* value,
       case IrOpcode::kUint32LessThanOrEqual:
         cont->OverwriteAndNegateIfEqual(kUnsignedLessThanOrEqual);
         return VisitWord32Compare(this, value, cont);
-#if V8_TARGET_ARCH_PPC64
       case IrOpcode::kWord64Equal:
         cont->OverwriteAndNegateIfEqual(kEqual);
         return VisitWord64Compare(this, value, cont);
@@ -1559,7 +1557,6 @@ void InstructionSelector::VisitWordCompareZero(Node* user, Node* value,
       case IrOpcode::kUint64LessThanOrEqual:
         cont->OverwriteAndNegateIfEqual(kUnsignedLessThanOrEqual);
         return VisitWord64Compare(this, value, cont);
-#endif
       case IrOpcode::kFloat32Equal:
         cont->OverwriteAndNegateIfEqual(kEqual);
         return VisitFloat32Compare(this, value, cont);
@@ -1569,7 +1566,6 @@ void InstructionSelector::VisitWordCompareZero(Node* user, Node* value,
       case IrOpcode::kFloat32LessThanOrEqual:
         cont->OverwriteAndNegateIfEqual(kUnsignedLessThanOrEqual);
         return VisitFloat32Compare(this, value, cont);
-#if V8_TARGET_ARCH_PPC64
       case IrOpcode::kFloat64Equal:
         cont->OverwriteAndNegateIfEqual(kEqual);
         return VisitFloat64Compare(this, value, cont);
@@ -1579,7 +1575,6 @@ void InstructionSelector::VisitWordCompareZero(Node* user, Node* value,
       case IrOpcode::kFloat64LessThanOrEqual:
         cont->OverwriteAndNegateIfEqual(kUnsignedLessThanOrEqual);
         return VisitFloat64Compare(this, value, cont);
-#endif
       case IrOpcode::kProjection:
         // Check if this is the overflow output projection of an
         // <Operation>WithOverflow node.
@@ -1634,7 +1629,6 @@ void InstructionSelector::VisitWordCompareZero(Node* user, Node* value,
 // case IrOpcode::kWord32Shl:
 // case IrOpcode::kWord32Shr:
 // case IrOpcode::kWord32Ror:
-#if V8_TARGET_ARCH_PPC64
       case IrOpcode::kInt64Sub:
         return VisitWord64Compare(this, value, cont);
       case IrOpcode::kWord64And:
@@ -1649,7 +1643,6 @@ void InstructionSelector::VisitWordCompareZero(Node* user, Node* value,
 // case IrOpcode::kWord64Shl:
 // case IrOpcode::kWord64Shr:
 // case IrOpcode::kWord64Ror:
-#endif
       case IrOpcode::kStackPointerGreaterThan:
         cont->OverwriteAndNegateIfEqual(kStackPointerGreaterThanCondition);
         return VisitStackPointerGreaterThan(value, cont);
@@ -1722,7 +1715,6 @@ void InstructionSelector::VisitUint32LessThanOrEqual(Node* node) {
   VisitWord32Compare(this, node, &cont);
 }
 
-#if V8_TARGET_ARCH_PPC64
 void InstructionSelector::VisitWord64Equal(Node* const node) {
   FlagsContinuation cont = FlagsContinuation::ForSet(kEqual, node);
   VisitWord64Compare(this, node, &cont);
@@ -1749,7 +1741,6 @@ void InstructionSelector::VisitUint64LessThanOrEqual(Node* node) {
       FlagsContinuation::ForSet(kUnsignedLessThanOrEqual, node);
   VisitWord64Compare(this, node, &cont);
 }
-#endif
 
 void InstructionSelector::VisitInt32MulWithOverflow(Node* node) {
   if (Node* ovf = NodeProperties::FindProjection(node, 1)) {

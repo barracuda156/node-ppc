@@ -703,6 +703,25 @@ void TurboAssembler::CanonicalizeNaN(const DoubleRegister dst,
   fsub(dst, src, kDoubleRegZero);
 }
 
+void TurboAssembler::ConvertDoubleToInt32NoPPC64(
+  DoubleRegister src,
+  Register dest, Register dest_hi,
+  FPRoundingMode rounding_mode)  {
+    
+  if (rounding_mode == kRoundToZero) {
+    fctiwz(src, src);
+  } else {
+    SetRoundingMode(rounding_mode);
+    fctiw(src, src);
+    ResetRoundingMode();
+  }
+  subi(sp, sp, Operand(kDoubleSize));
+  stfd(src, MemOperand(sp, 0));
+  lwz(dest, MemOperand(sp, LO_WORD_OFFSET));
+  lwz(dest_hi, MemOperand(sp, HI_WORD_OFFSET));
+  addi(sp, sp, Operand(kDoubleSize));
+}
+
 void TurboAssembler::ConvertIntToFloatingPointNoPPC64(Register src,
     DoubleRegister double_dst,
     bool result_is_a_float,
@@ -711,7 +730,7 @@ void TurboAssembler::ConvertIntToFloatingPointNoPPC64(Register src,
     Register scratch = r11;
     DoubleRegister double_scratch = kScratchDoubleReg;
 
-  subi(sp, sp, Operand(8));  // reserve one temporary double on the stack
+  subi(sp, sp, Operand(kDoubleSize));  // reserve one temporary double on the stack
 
   // sign-extend src to 64-bit and store it to temp double on the stack
 #if V8_TARGET_ARCH_PPC64
@@ -719,14 +738,10 @@ void TurboAssembler::ConvertIntToFloatingPointNoPPC64(Register src,
   std(r0, MemOperand(sp, 0));
 #else
   srawi(r0, src, 31);
-#if __FLOAT_WORD_ORDER == __LITTLE_ENDIAN
-  stw(r0, MemOperand(sp, 4));
-  stw(src, MemOperand(sp, 0));
-#else
-  stw(r0, MemOperand(sp, 0));
-  stw(src, MemOperand(sp, 4));
+  stw(r0, MemOperand(sp, HI_WORD_OFFSET));
+  stw(src, MemOperand(sp, LO_WORD_OFFSET));
 #endif
-#endif
+
   if (src_is_unsigned) {
     // load 0x4330000000000000 into double_scratch
     lis(scratch, Operand(0x4330));
@@ -747,7 +762,7 @@ void TurboAssembler::ConvertIntToFloatingPointNoPPC64(Register src,
     stw(scratch, MemOperand(sp, LO_WORD_OFFSET));
     lfd(double_scratch, MemOperand(sp, 0));
 
-  // load into FPR
+    // load into FPR
     // load 0x1.00000dddddddd x10^D into double_dst
     lis(scratch, Operand(0x4330));
     stw(scratch, MemOperand(sp, HI_WORD_OFFSET));
@@ -759,7 +774,7 @@ void TurboAssembler::ConvertIntToFloatingPointNoPPC64(Register src,
   lfd(double_dst, MemOperand(sp, 0));
   fsub(double_dst, double_dst, double_scratch);
 
-  addi(sp, sp, Operand(8));  // restore stack
+  addi(sp, sp, Operand(kDoubleSize));  // restore stack
 
   if (result_is_a_float) {
     // Round to single word FP
@@ -844,6 +859,14 @@ void TurboAssembler::ConvertDoubleToInt64(const DoubleRegister double_input,
   } else {
     SetRoundingMode(rounding_mode);
     fctid(double_dst, double_input);
+    ResetRoundingMode();
+  }
+else
+  if (rounding_mode == kRoundToZero) {
+    fctiwz(double_dst, double_input);
+  } else {
+    SetRoundingMode(rounding_mode);
+    fctiw(double_dst, double_input);
     ResetRoundingMode();
   }
 #endif
@@ -1696,22 +1719,14 @@ void TurboAssembler::TruncateDoubleToI(Isolate* isolate, Zone* zone,
 void TurboAssembler::TryInlineTruncateDoubleToI(Register result,
                                                 DoubleRegister double_input,
                                                 Label* done) {
-  DoubleRegister double_scratch = kScratchDoubleReg;
 #if !V8_TARGET_ARCH_PPC64
-  Register scratch = ip;
-#endif
-
-  ConvertDoubleToInt64(double_input,
-#if !V8_TARGET_ARCH_PPC64
-                       scratch,
-#endif
-                       result, double_scratch);
-
-// Test for overflow
-#if V8_TARGET_ARCH_PPC64
-  TestIfInt32(result, r0);
-#else
+  Register scratch = r11;
+  ConvertDoubleToInt32NoPPC64(double_input, result, scratch);
   TestIfInt32(scratch, result, r0);
+#else
+  DoubleRegister double_scratch = kScratchDoubleReg;
+  ConvertDoubleToInt64(double_input, result, double_scratch);
+  TestIfInt32(result, r0);
 #endif
   beq(done);
 }
@@ -2538,7 +2553,7 @@ void MacroAssembler::AddSmiLiteral(Register dst, Register src, Smi smi,
   LoadSmiLiteral(scratch, smi);
   add(dst, src, scratch);
 #else
-  Add(dst, src, reinterpret_cast<uintptr_t>(smi.ptr()), scratch);
+  Add(dst, src, smi.value(), scratch);
 #endif
 }
 
@@ -2548,7 +2563,7 @@ void MacroAssembler::SubSmiLiteral(Register dst, Register src, Smi smi,
   LoadSmiLiteral(scratch, smi);
   sub(dst, src, scratch);
 #else
-  Add(dst, src, -(reinterpret_cast<uintptr_t>(smi.ptr())), scratch);
+  Add(dst, src, -smi.value(), scratch);
 #endif
 }
 
