@@ -861,7 +861,7 @@ void TurboAssembler::ConvertDoubleToInt64(const DoubleRegister double_input,
     fctid(double_dst, double_input);
     ResetRoundingMode();
   }
-else
+#else
   if (rounding_mode == kRoundToZero) {
     fctiwz(double_dst, double_input);
   } else {

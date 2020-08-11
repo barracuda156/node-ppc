@@ -2827,17 +2827,12 @@ void Builtins::Generate_DoubleToI(MacroAssembler* masm) {
   __ lfd(double_scratch, MemOperand(sp, argument_offset));
 
   // Do fast-path convert from double to int.
-  __ ConvertDoubleToInt64(double_scratch,
 #if !V8_TARGET_ARCH_PPC64
-                          scratch,
-#endif
-                          result_reg, d0);
-
-// Test for overflow
-#if V8_TARGET_ARCH_PPC64
-  __ TestIfInt32(result_reg, r0);
-#else
+  __ ConvertDoubleToInt32NoPPC64(double_scratch, result_reg, scratch);
   __ TestIfInt32(scratch, result_reg, r0);
+#else
+  __ ConvertDoubleToInt64(double_scratch, result_reg, d0);
+  __ TestIfInt32(result_reg, r0);
 #endif
   __ beq(&fastpath_done);
 
