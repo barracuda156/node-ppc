@@ -596,13 +596,6 @@ class V8_EXPORT_PRIVATE TurboAssembler : public TurboAssemblerBase {
     extsw(scratch, value);
     cmp(scratch, value, cr);
   }
-#else
-  inline void TestIfInt32(Register hi_word, Register lo_word, Register scratch,
-                          CRegister cr = cr7) {
-    // High bits must be identical to fit into an 32-bit integer
-    srawi(scratch, lo_word, 31);
-    cmp(scratch, hi_word, cr);
-  }
 #endif
 
   // Overflow handling functions.

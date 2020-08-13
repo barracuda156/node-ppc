@@ -1721,14 +1721,20 @@ void TurboAssembler::TryInlineTruncateDoubleToI(Register result,
                                                 Label* done) {
 #if !V8_TARGET_ARCH_PPC64
   Register scratch = r11;
+  CRegister cr = cr7;
+  int crbit = v8::internal::Assembler::encode_crbit(
+    cr, static_cast<CRBit>(VXCVI % CRWIDTH));
+  mtfsb0(VXCVI);
   ConvertDoubleToInt32NoPPC64(double_input, result, scratch);
-  TestIfInt32(scratch, result, r0);
+  mcrfs(cr, VXCVI);
+  bc(v8::internal::kInstrSize * 2, BT, crbit);
+  b(done);
 #else
   DoubleRegister double_scratch = kScratchDoubleReg;
   ConvertDoubleToInt64(double_input, result, double_scratch);
   TestIfInt32(result, r0);
-#endif
   beq(done);
+#endif
 }
 
 void TurboAssembler::CallRuntimeWithCEntry(Runtime::FunctionId fid,

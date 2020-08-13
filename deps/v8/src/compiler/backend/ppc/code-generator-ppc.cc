@@ -1877,9 +1877,18 @@ CodeGenerator::CodeGenResult CodeGenerator::AssembleArchInstruction(
     case kPPC_DoubleToUint32:
 #if !V8_TARGET_ARCH_PPC64
     {
+      Label exit_inv;
       Register scratch = kScratchReg;
+      CRegister cr = cr7;
+      int crbit = v8::internal::Assembler::encode_crbit(
+            cr, static_cast<CRBit>(VXCVI % CRWIDTH));
+      __ mtfsb0(VXCVI);
       __ ConvertDoubleToInt32NoPPC64(i.InputDoubleRegister(0), i.OutputRegister(), scratch);
-      __ TestIfInt32(scratch,  i.OutputRegister(), r0);
+      __ mcrfs(cr, VXCVI);
+      __ bc(__ branch_offset(&exit_inv), BT, crbit);
+      break;
+      __ bind(&exit_inv);
+      __ li(i.OutputRegister(), Operand::Zero());
       break;
     }
 #endif

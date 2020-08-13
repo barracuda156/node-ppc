@@ -2818,7 +2818,11 @@ void Builtins::Generate_DoubleToI(MacroAssembler* masm) {
   Register scratch_high =
       GetRegisterThatIsNotOneOf(result_reg, scratch, scratch_low);
   DoubleRegister double_scratch = kScratchDoubleReg;
-
+#if !V8_TARGET_ARCH_PPC64
+  CRegister cr = cr7;
+  int crbit = v8::internal::Assembler::encode_crbit(
+      cr, static_cast<CRBit>(VXCVI % CRWIDTH));
+#endif
   __ Push(result_reg, scratch);
   // Account for saved regs.
   int argument_offset = 2 * kPointerSize;
@@ -2828,13 +2832,16 @@ void Builtins::Generate_DoubleToI(MacroAssembler* masm) {
 
   // Do fast-path convert from double to int.
 #if !V8_TARGET_ARCH_PPC64
+  __ mtfsb0(VXCVI);
   __ ConvertDoubleToInt32NoPPC64(double_scratch, result_reg, scratch);
-  __ TestIfInt32(scratch, result_reg, r0);
+  __ mcrfs(cr, VXCVI);
+  __ bc(v8::internal::kInstrSize * 2, BT, crbit);
+  __ b(&fastpath_done);
 #else
   __ ConvertDoubleToInt64(double_scratch, result_reg, d0);
   __ TestIfInt32(result_reg, r0);
-#endif
   __ beq(&fastpath_done);
+#endif
 
   __ Push(scratch_high, scratch_low);
   // Account for saved regs.
