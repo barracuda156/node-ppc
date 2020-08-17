@@ -1719,6 +1719,7 @@ void TurboAssembler::TruncateDoubleToI(Isolate* isolate, Zone* zone,
 void TurboAssembler::TryInlineTruncateDoubleToI(Register result,
                                                 DoubleRegister double_input,
                                                 Label* done) {
+ Label conv_inv, conv_ok;
 #if !V8_TARGET_ARCH_PPC64
   Register scratch = r11;
   CRegister cr = cr7;
@@ -1727,14 +1728,19 @@ void TurboAssembler::TryInlineTruncateDoubleToI(Register result,
   mtfsb0(VXCVI);
   ConvertDoubleToInt32NoPPC64(double_input, result, scratch);
   mcrfs(cr, VXCVI);
-  bc(v8::internal::kInstrSize * 2, BT, crbit);
-  b(done);
+  bc(branch_offset(&conv_inv), BT, crbit);
+  addi(scratch, result, Operand(0));
+  b(&conv_ok);
+  bind(&conv_inv);
+  addi(scratch, result, Operand(1));
+  bind(&conv_ok);
+  cmp(scratch, result, cr);
 #else
   DoubleRegister double_scratch = kScratchDoubleReg;
   ConvertDoubleToInt64(double_input, result, double_scratch);
   TestIfInt32(result, r0);
-  beq(done);
 #endif
+  b(done);
 }
 
 void TurboAssembler::CallRuntimeWithCEntry(Runtime::FunctionId fid,

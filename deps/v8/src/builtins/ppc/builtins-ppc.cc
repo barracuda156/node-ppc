@@ -2807,7 +2807,7 @@ void Builtins::Generate_CEntry(MacroAssembler* masm, int result_size,
 }
 
 void Builtins::Generate_DoubleToI(MacroAssembler* masm) {
-  Label out_of_range, only_low, negate, done, fastpath_done;
+  Label out_of_range, only_low, negate, done, fastpath_done, conv_inv, conv_ok;
   Register result_reg = r3;
 
   HardAbortScope hard_abort(masm);  // Avoid calls to Abort.
@@ -2835,13 +2835,18 @@ void Builtins::Generate_DoubleToI(MacroAssembler* masm) {
   __ mtfsb0(VXCVI);
   __ ConvertDoubleToInt32NoPPC64(double_scratch, result_reg, scratch);
   __ mcrfs(cr, VXCVI);
-  __ bc(v8::internal::kInstrSize * 2, BT, crbit);
-  __ b(&fastpath_done);
+  __ bc(__ branch_offset(&conv_inv), BT, crbit);
+  __ addi(scratch, result_reg, Operand(0));
+  __ b(&conv_ok);
+  __ bind(&conv_inv);
+  __ addi(scratch, result_reg, Operand(1));
+  __ bind(&conv_ok);
+  __ cmp(scratch, result_reg, cr);
 #else
   __ ConvertDoubleToInt64(double_scratch, result_reg, d0);
   __ TestIfInt32(result_reg, r0);
-  __ beq(&fastpath_done);
 #endif
+  __ beq(&fastpath_done);
 
   __ Push(scratch_high, scratch_low);
   // Account for saved regs.

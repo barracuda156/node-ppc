@@ -1877,7 +1877,7 @@ CodeGenerator::CodeGenResult CodeGenerator::AssembleArchInstruction(
     case kPPC_DoubleToUint32:
 #if !V8_TARGET_ARCH_PPC64
     {
-      Label exit_inv;
+      Label conv_inv, conv_ok;
       Register scratch = kScratchReg;
       CRegister cr = cr7;
       int crbit = v8::internal::Assembler::encode_crbit(
@@ -1885,10 +1885,13 @@ CodeGenerator::CodeGenResult CodeGenerator::AssembleArchInstruction(
       __ mtfsb0(VXCVI);
       __ ConvertDoubleToInt32NoPPC64(i.InputDoubleRegister(0), i.OutputRegister(), scratch);
       __ mcrfs(cr, VXCVI);
-      __ bc(__ branch_offset(&exit_inv), BT, crbit);
-      break;
-      __ bind(&exit_inv);
-      __ li(i.OutputRegister(), Operand::Zero());
+      __ bc(__ branch_offset(&conv_inv), BT, crbit);
+      __ addi(scratch, i.OutputRegister(), Operand(0));
+      __ b(&conv_ok);
+      __ bind(&conv_inv);
+      __ addi(scratch, i.OutputRegister(), Operand(1));
+      __ bind(&conv_ok);
+      __ cmp(scratch, i.OutputRegister(), cr);
       break;
     }
 #endif
