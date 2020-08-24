@@ -1889,6 +1889,7 @@ CodeGenerator::CodeGenResult CodeGenerator::AssembleArchInstruction(
       __ addi(scratch, i.OutputRegister(), Operand(0));
       __ b(&conv_ok);
       __ bind(&conv_inv);
+      __ li(i.OutputRegister(), Operand(0));
       __ addi(scratch, i.OutputRegister(), Operand(1));
       __ bind(&conv_ok);
       __ cmp(scratch, i.OutputRegister(), cr);

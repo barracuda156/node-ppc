@@ -1732,6 +1732,7 @@ void TurboAssembler::TryInlineTruncateDoubleToI(Register result,
   addi(scratch, result, Operand(0));
   b(&conv_ok);
   bind(&conv_inv);
+  li(result, Operand(0));
   addi(scratch, result, Operand(1));
   bind(&conv_ok);
   cmp(scratch, result, cr);
