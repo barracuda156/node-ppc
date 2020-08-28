@@ -2281,14 +2281,10 @@ void CodeGenerator::AssembleArchBranch(Instruction* instr, BranchInfo* branch) {
 
   Condition cond = FlagsConditionToCondition(condition, op);
   if (op == kPPC_CmpDouble) {
-    // check for unordered if necessary
-    if (cond == le) {
+      // comparison against any NaN operand should go to false except on not
+      // equal, but this case seems to introduce problems, so jumping
+      // inconditionally to false in case of CR_FU.
       __ bunordered(flabel, cr);
-      // Unnecessary for eq/lt since only FU bit will be set.
-    } else if (cond == gt) {
-      __ bunordered(tlabel, cr);
-      // Unnecessary for ne/ge since only FU bit will be set.
-    }
   }
   __ b(cond, tlabel, cr);
   if (!branch->fallthru) __ b(flabel);  // no fallthru to flabel.
@@ -2374,13 +2370,10 @@ void CodeGenerator::AssembleArchTrap(Instruction* instr,
   CRegister cr = cr0;
   Condition cond = FlagsConditionToCondition(condition, op);
   if (op == kPPC_CmpDouble) {
-    // check for unordered if necessary
-    if (cond == le) {
+    if (cond != ne) {
       __ bunordered(&end, cr);
-      // Unnecessary for eq/lt since only FU bit will be set.
-    } else if (cond == gt) {
+    } else {
       __ bunordered(tlabel, cr);
-      // Unnecessary for ne/ge since only FU bit will be set.
     }
   }
   __ b(cond, tlabel, cr);
@@ -2404,11 +2397,11 @@ void CodeGenerator::AssembleArchBoolean(Instruction* instr,
   Condition cond = FlagsConditionToCondition(condition, op);
   if (op == kPPC_CmpDouble) {
     // check for unordered if necessary
-    if (cond == le) {
+    if (cond != ne) {
       reg_value = 0;
       __ li(reg, Operand::Zero());
       __ bunordered(&done, cr);
-    } else if (cond == gt) {
+    } else {
       reg_value = 1;
       __ li(reg, Operand(1));
       __ bunordered(&done, cr);
