@@ -707,16 +707,18 @@ void TurboAssembler::ConvertDoubleToInt32NoPPC64(
   DoubleRegister src,
   Register dest, Register dest_hi,
   FPRoundingMode rounding_mode)  {
-    
+
+  DoubleRegister double_scratch = kScratchDoubleReg;
+
   if (rounding_mode == kRoundToZero) {
-    fctiwz(src, src);
+    fctiwz(double_scratch, src);
   } else {
     SetRoundingMode(rounding_mode);
-    fctiw(src, src);
+    fctiw(double_scratch, src);
     ResetRoundingMode();
   }
   subi(sp, sp, Operand(kDoubleSize));
-  stfd(src, MemOperand(sp, 0));
+  stfd(double_scratch, MemOperand(sp, 0));
   lwz(dest, MemOperand(sp, LO_WORD_OFFSET));
   lwz(dest_hi, MemOperand(sp, HI_WORD_OFFSET));
   addi(sp, sp, Operand(kDoubleSize));
