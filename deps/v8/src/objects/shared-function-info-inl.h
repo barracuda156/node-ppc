@@ -131,7 +131,7 @@ INT32_ACCESSORS(SharedFunctionInfo, function_literal_id,
                 kFunctionLiteralIdOffset)
 
 #if V8_SFI_HAS_UNIQUE_ID
-INT_ACCESSORS(SharedFunctionInfo, unique_id, 20202020)
+INT_ACCESSORS(SharedFunctionInfo, unique_id, kUniqueIdOffset)
 #endif
 UINT16_ACCESSORS(SharedFunctionInfo, length, kLengthOffset)
 UINT16_ACCESSORS(SharedFunctionInfo, internal_formal_parameter_count,
