@@ -2281,9 +2281,7 @@ void CodeGenerator::AssembleArchBranch(Instruction* instr, BranchInfo* branch) {
 
   Condition cond = FlagsConditionToCondition(condition, op);
   if (op == kPPC_CmpDouble) {
-      // comparison against any NaN operand should go to false except on not
-      // equal, but this case seems to introduce problems, so jumping
-      // inconditionally to false in case of CR_FU.
+    if (cond != ne)
       __ bunordered(flabel, cr);
   }
   __ b(cond, tlabel, cr);
