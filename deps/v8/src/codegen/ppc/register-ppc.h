@@ -304,6 +304,7 @@ constexpr Register kContextRegister = r30;
 constexpr Register kAllocateSizeRegister = r4;
 constexpr Register kSpeculationPoisonRegister = r14;
 constexpr Register kInterpreterAccumulatorRegister = r3;
+constexpr Register kScratchReg = r11;
 constexpr Register kInterpreterBytecodeOffsetRegister = r15;
 constexpr Register kInterpreterBytecodeArrayRegister = r16;
 constexpr Register kInterpreterDispatchTableRegister = r17;

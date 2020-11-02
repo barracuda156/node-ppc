@@ -25,8 +25,6 @@ namespace compiler {
 
 #define __ tasm()->
 
-#define kScratchReg r11
-
 // Adds PPC-specific methods to convert InstructionOperands.
 class PPCOperandConverter final : public InstructionOperandConverter {
  public:

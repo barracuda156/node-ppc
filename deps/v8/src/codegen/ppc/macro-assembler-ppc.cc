@@ -729,7 +729,7 @@ void TurboAssembler::ConvertIntToFloatingPointNoPPC64(Register src,
     bool result_is_a_float,
     bool src_is_unsigned) {
 
-    Register scratch = r11;
+    Register scratch = kScratchReg;
     DoubleRegister double_scratch = kScratchDoubleReg;
 
   subi(sp, sp, Operand(kDoubleSize));  // reserve one temporary double on the stack
@@ -1723,7 +1723,7 @@ void TurboAssembler::TryInlineTruncateDoubleToI(Register result,
                                                 Label* done) {
  Label conv_inv, conv_ok;
 #if !V8_TARGET_ARCH_PPC64
-  Register scratch = r11;
+  Register scratch = kScratchReg;
   CRegister cr = cr7;
   int crbit = v8::internal::Assembler::encode_crbit(
     cr, static_cast<CRBit>(VXCVI % CRWIDTH));
@@ -3128,7 +3128,7 @@ void TurboAssembler::LoadCodeObjectEntry(Register destination,
     DCHECK(root_array_available());
     Label if_code_is_off_heap, out;
 
-    Register scratch = r11;
+    Register scratch = kScratchReg;
 
     DCHECK(!AreAliased(destination, scratch));
     DCHECK(!AreAliased(code_object, scratch));
