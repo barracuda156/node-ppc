@@ -132,7 +132,7 @@
       }, {
         'openssl_product': '<(STATIC_LIB_PREFIX)openssl<(STATIC_LIB_SUFFIX)',
       }],
-      ['OS=="mac"', {
+      ['OS=="mac" and target_arch!="ppc" and target_arch!="ppc64"', {
         'clang%': 1,
       }],
       ['target_arch in "ppc64 s390x"', {
@@ -499,6 +499,12 @@
           }],
           ['target_arch=="x64"', {
             'xcode_settings': {'ARCHS': ['x86_64']},
+          }],
+          ['target_arch=="ppc"', {
+            'xcode_settings': {'ARCHS': ['ppc']},
+          }],
+          ['target_arch=="ppc64"', {
+            'xcode_settings': {'ARCHS': ['ppc64']},
           }],
           ['target_arch=="arm64"', {
             'xcode_settings': {
