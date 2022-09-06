@@ -8,14 +8,12 @@
 
 #include "src/codegen/cpu-features.h"
 
-#define INSTR_AND_DATA_CACHE_COHERENCY LWSYNC
-
 namespace v8 {
 namespace internal {
 
 void CpuFeatures::FlushICache(void* buffer, size_t size) {
 #if !defined(USE_SIMULATOR)
-  if (CpuFeatures::IsSupported(INSTR_AND_DATA_CACHE_COHERENCY)) {
+  if (CpuFeatures::IsSupported(ICACHE_SNOOP)) {
     __asm__ __volatile__(
         "sync \n"
         "icbi 0, %0  \n"
@@ -26,20 +24,30 @@ void CpuFeatures::FlushICache(void* buffer, size_t size) {
     return;
   }
 
-  const int kCacheLineSize = CpuFeatures::icache_line_size();
-  intptr_t mask = kCacheLineSize - 1;
+  const int kInstrCacheLineSize = CpuFeatures::icache_line_size();
+  const int kDataCacheLineSize = CpuFeatures::dcache_line_size();
+  intptr_t ic_mask = kInstrCacheLineSize - 1;
+  intptr_t dc_mask = kDataCacheLineSize - 1;
   byte* start =
-      reinterpret_cast<byte*>(reinterpret_cast<intptr_t>(buffer) & ~mask);
+      reinterpret_cast<byte*>(reinterpret_cast<intptr_t>(buffer) & ~dc_mask);
   byte* end = static_cast<byte*>(buffer) + size;
-  for (byte* pointer = start; pointer < end; pointer += kCacheLineSize) {
-    __asm__(
+  for (byte* pointer = start; pointer < end; pointer += kDataCacheLineSize) {
+    __asm__ __volatile__(
         "dcbf 0, %0  \n"
-        "sync        \n"
-        "icbi 0, %0  \n"
-        "isync       \n"
         : /* no output */
         : "r"(pointer));
   }
+  __asm__ __volatile__("sync");
+
+  start =
+      reinterpret_cast<byte*>(reinterpret_cast<intptr_t>(buffer) & ~ic_mask);
+  for (byte* pointer = start; pointer < end; pointer += kInstrCacheLineSize) {
+    __asm__ __volatile__(
+        "icbi 0, %0  \n"
+        : /* no output */
+        : "r"(pointer));
+  }
+  __asm__ __volatile__("isync");
 
 #endif  // !USE_SIMULATOR
 }

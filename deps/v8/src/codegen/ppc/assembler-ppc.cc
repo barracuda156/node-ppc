@@ -57,6 +57,7 @@ static unsigned CpuFeaturesImpliedByCompiler() {
 void CpuFeatures::ProbeImpl(bool cross_compile) {
   supported_ |= CpuFeaturesImpliedByCompiler();
   icache_line_size_ = 128;
+  dcache_line_size_ = 128;
 
   // Only use statically determined features for cross compile (snapshot).
   if (cross_compile) return;
@@ -64,33 +65,58 @@ void CpuFeatures::ProbeImpl(bool cross_compile) {
 // Detect whether frim instruction is supported (POWER5+)
 // For now we will just check for processors we know do not
 // support it
-#ifndef USE_SIMULATOR
+#ifdef USE_SIMULATOR
+  // Simulator
+  supported_ |= (1u << PPC_10_PLUS);
+  supported_ |= (1u << ICACHE_SNOOP);
+  supported_ |= (1u << ISELECT);
+#else
   // Probe for additional features at runtime.
   base::CPU cpu;
-  if (cpu.part() == base::CPU::PPC_POWER9 || 
+  if (cpu.part() == base::CPU::PPC_POWER9 ||
       cpu.part() == base::CPU::PPC_POWER10) {
+    supported_ |= (1u << PPC_9_PLUS);
+    supported_ |= (1u << PPC_10_PLUS);
     supported_ |= (1u << MODULO);
   }
 #if V8_TARGET_ARCH_PPC64
-  if (cpu.part() == base::CPU::PPC_POWER8 || 
-      cpu.part() == base::CPU::PPC_POWER9 || 
+  if (cpu.part() == base::CPU::PPC_POWER8 ||
+      cpu.part() == base::CPU::PPC_POWER9 ||
       cpu.part() == base::CPU::PPC_POWER10) {
     supported_ |= (1u << FPR_GPR_MOV);
   }
 #endif
   if (cpu.part() == base::CPU::PPC_POWER6 ||
       cpu.part() == base::CPU::PPC_POWER7 ||
-      cpu.part() == base::CPU::PPC_POWER8 || 
-      cpu.part() == base::CPU::PPC_POWER9 || 
+      cpu.part() == base::CPU::PPC_POWER8 ||
+      cpu.part() == base::CPU::PPC_POWER9 ||
       cpu.part() == base::CPU::PPC_POWER10) {
+    supported_ |= (1u << PPC_6_PLUS);
     supported_ |= (1u << LWSYNC);
   }
   if (cpu.part() == base::CPU::PPC_POWER7 ||
-      cpu.part() == base::CPU::PPC_POWER8 || 
-      cpu.part() == base::CPU::PPC_POWER9 || 
+      cpu.part() == base::CPU::PPC_POWER8 ||
+      cpu.part() == base::CPU::PPC_POWER9 ||
       cpu.part() == base::CPU::PPC_POWER10) {
+    supported_ |= (1u << PPC_7_PLUS);
+    supported_ |= (1u << PPC_8_PLUS);
     supported_ |= (1u << ISELECT);
     supported_ |= (1u << VSX);
+  }
+  if (cpu.part() == base::CPU::PPC_POWER5 ||
+      cpu.part() == base::CPU::PPC_PA6T) {
+    supported_ |= (1u << PPC_5_PLUS);
+  }
+  if (cpu.part() == base::CPU::PPC_E6500 ||
+      cpu.part() == base::CPU::PPC_E5500) {
+    supported_ |= (1u << PPC_7_PLUS_NXP);   // NXP-supported ISA v. 2.06 features
+  }
+
+  if (cpu.has_icache_snoop()) {
+    supported_ |= (1u << ICACHE_SNOOP);
+  }
+  if (cpu.has_isel()) {
+    supported_ |= (1u << ISELECT);
   }
 #if V8_OS_LINUX
   if (!(cpu.part() == base::CPU::PPC_G5 || cpu.part() == base::CPU::PPC_G4)) {
@@ -100,9 +126,14 @@ void CpuFeatures::ProbeImpl(bool cross_compile) {
   if (cpu.icache_line_size() != base::CPU::UNKNOWN_CACHE_LINE_SIZE) {
     icache_line_size_ = cpu.icache_line_size();
   }
+  if (cpu.dcache_line_size() != base::CPU::UNKNOWN_CACHE_LINE_SIZE) {
+    dcache_line_size_ = cpu.dcache_line_size();
+  }
 #elif V8_OS_AIX
   // Assume support FP support and default cache line size
   supported_ |= (1u << FPU);
+#elif V8_OS_MACOSX
+  // No special definition for Altivec
 #endif
 #else  // Simulator
   supported_ |= (1u << FPU);
@@ -130,6 +161,15 @@ void CpuFeatures::PrintTarget() {
 
 void CpuFeatures::PrintFeatures() {
   printf("FPU=%d\n", CpuFeatures::IsSupported(FPU));
+  printf("PPC_5_PLUS=%d\n", CpuFeatures::IsSupported(PPC_5_PLUS));
+  printf("PPC_6_PLUS=%d\n", CpuFeatures::IsSupported(PPC_6_PLUS));
+  printf("PPC_7_PLUS=%d\n", CpuFeatures::IsSupported(PPC_7_PLUS));
+  printf("PPC_8_PLUS=%d\n", CpuFeatures::IsSupported(PPC_8_PLUS));
+  printf("PPC_9_PLUS=%d\n", CpuFeatures::IsSupported(PPC_9_PLUS));
+  printf("PPC_10_PLUS=%d\n", CpuFeatures::IsSupported(PPC_10_PLUS));
+  printf("ICACHE_SNOOP=%d\n", CpuFeatures::IsSupported(ICACHE_SNOOP));
+  printf("ISELECT=%d\n", CpuFeatures::IsSupported(ISELECT));
+  printf("PPC_7_PLUS_NXP=%d\n", CpuFeatures::IsSupported(PPC_7_PLUS_NXP));
 }
 
 Register ToRegister(int num) {

@@ -2430,17 +2430,26 @@ void InstructionSelector::VisitS8x16Shuffle(Node* node) { UNIMPLEMENTED(); }
 // static
 MachineOperatorBuilder::Flags
 InstructionSelector::SupportedMachineOperatorFlags() {
+  MachineOperatorBuilder::Flags flags = MachineOperatorBuilder::Flag::kNoFlags;
+  // FP rounding to integer instructions require Power ISA v2.02 or later.
+  if (CpuFeatures::IsSupported(PPC_5_PLUS)) {
+    flags |= MachineOperatorBuilder::kFloat32RoundDown |
+             MachineOperatorBuilder::kFloat64RoundDown |
+             MachineOperatorBuilder::kFloat32RoundUp |
+             MachineOperatorBuilder::kFloat64RoundUp |
+             MachineOperatorBuilder::kFloat32RoundTruncate |
+             MachineOperatorBuilder::kFloat64RoundTruncate |
+             MachineOperatorBuilder::kFloat64RoundTiesAway;
+  }
+  // Population count requires Power ISA v2.06, or NXP e5500/e6500.
+  if (CpuFeatures::IsSupported(PPC_7_PLUS_NXP)) {
+    flags |= MachineOperatorBuilder::kWord32Popcnt;
 #if V8_TARGET_ARCH_PPC64
-  return MachineOperatorBuilder::kFloat32RoundDown |
-         MachineOperatorBuilder::kFloat64RoundDown |
-         MachineOperatorBuilder::kFloat32RoundUp |
-         MachineOperatorBuilder::kFloat64RoundUp |
-         MachineOperatorBuilder::kFloat32RoundTruncate |
-         MachineOperatorBuilder::kFloat64RoundTruncate |
-         MachineOperatorBuilder::kFloat64RoundTiesAway |
-         MachineOperatorBuilder::kWord32Popcnt |
-         MachineOperatorBuilder::kWord64Popcnt;
+    flags |= MachineOperatorBuilder::kWord64Popcnt;
+#endif
+  }
   // We omit kWord32ShiftIsSafe as s[rl]w use 0x3F as a mask rather than 0x1F.
+  return flags;
 #else
 return MachineOperatorBuilder::kNoFlags;
   //return MachineOperatorBuilder::kWord32Popcnt |

@@ -37,13 +37,21 @@ enum CpuFeature {
   MIPSr1,
   MIPSr2,
   MIPSr6,
-  MIPS_SIMD,  // MSA instructions
+  MIPS_SIMD,    // MSA instructions
   // PPC
   FPR_GPR_MOV,
   LWSYNC,
-  ISELECT,
-  VSX,
+  ICACHE_SNOOP,  // ISA v. 2.02
+  ISELECT,       // ISA v. 2.03 (POWER5+ and some NXP cores)
+  VSX,           // ISA v. 2.06
   MODULO,
+  PPC_5_PLUS,
+  PPC_6_PLUS,
+  PPC_7_PLUS,
+  PPC_7_PLUS_NXP, // ISA v. 2.06 (POWER7 and NXP e5500/e6500)
+  PPC_8_PLUS,
+  PPC_9_PLUS,
+  PPC_10_PLUS,
   // S390
   DISTINCT_OPS,
   GENERAL_INSTR_EXT,
