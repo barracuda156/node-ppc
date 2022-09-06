@@ -872,7 +872,12 @@ void TurboAssembler::ConvertUnsignedIntToDouble(Register src, DoubleRegister dst
 void TurboAssembler::ConvertIntToFloat(Register src, DoubleRegister dst) {
 #ifdef V8_TARGET_ARCH_PPC64
   MovUnsignedIntToDouble(dst, src, r0);
-  fcfid(dst, dst);
+  if (CpuFeatures::IsSupported(PPC_7_PLUS)) {
+    fcfids(dst, dst);
+  } else {
+    fcfid(dst, dst);
+    frsp(dst, dst);
+  }
 #else
   ConvertIntToFloatingPointNoPPC64(src, dst, true, false);
 #endif
@@ -881,7 +886,12 @@ void TurboAssembler::ConvertIntToFloat(Register src, DoubleRegister dst) {
 void TurboAssembler::ConvertUnsignedIntToFloat(Register src, DoubleRegister dst) {
 #ifdef V8_TARGET_ARCH_PPC64
   MovUnsignedIntToDouble(dst, src, r0);
-  fcfids(dst, dst);
+  if (CpuFeatures::IsSupported(PPC_7_PLUS)) {
+    fcfids(dst, dst);
+  } else {
+    fcfid(dst, dst);
+    frsp(dst, dst);
+  }
 #else
   ConvertIntToFloatingPointNoPPC64(src, dst, true, true);
 #endif
@@ -894,18 +904,50 @@ void TurboAssembler::ConvertInt64ToDouble(Register src, DoubleRegister double_ds
 }
 
 void TurboAssembler::ConvertUnsignedInt64ToFloat(Register src, DoubleRegister double_dst) {
-  MovInt64ToDouble(double_dst, src);
-  fcfidus(double_dst, double_dst);
+  if (CpuFeatures::IsSupported(PPC_7_PLUS)) {
+    MovInt64ToDouble(double_dst, src);
+    fcfidus(double_dst, double_dst);
+  } else {
+    ConvertUnsignedInt64ToDouble(src, double_dst);
+    frsp(double_dst, double_dst);
+  }
 }
 
 void TurboAssembler::ConvertUnsignedInt64ToDouble(Register src, DoubleRegister double_dst) {
-  MovInt64ToDouble(double_dst, src);
-  fcfidu(double_dst, double_dst);
+  if (CpuFeatures::IsSupported(PPC_7_PLUS)) {
+    MovInt64ToDouble(double_dst, src);
+    fcfidu(double_dst, double_dst);
+  } else {
+    Label negative;
+    Label done;
+    cmpi(src, Operand::Zero());
+    blt(&negative);
+    std(src, MemOperand(sp, -kDoubleSize));
+    nop(GROUP_ENDING_NOP);  // LHS/RAW optimization
+    lfd(double_dst, MemOperand(sp, -kDoubleSize));
+    fcfid(double_dst, double_dst);
+    b(&done);
+    bind(&negative);
+    // Note: GCC saves the lowest bit, then ORs it after shifting right 1 bit,
+    // presumably for better rounding. This version only shifts right 1 bit.
+    srdi(r0, src, Operand(1));
+    std(r0, MemOperand(sp, -kDoubleSize));
+    nop(GROUP_ENDING_NOP);  // LHS/RAW optimization
+    lfd(double_dst, MemOperand(sp, -kDoubleSize));
+    fcfid(double_dst, double_dst);
+    fadd(double_dst, double_dst, double_dst);
+    bind(&done);
+   }
 }
 
 void TurboAssembler::ConvertInt64ToFloat(Register src, DoubleRegister double_dst) {
   MovInt64ToDouble(double_dst, src);
-  fcfids(double_dst, double_dst);
+  if (CpuFeatures::IsSupported(PPC_7_PLUS)) {
+    fcfids(double_dst, double_dst);
+  } else {
+    fcfid(double_dst, double_dst);
+    frsp(double_dst, double_dst);
+  }
 }
 #endif
 
@@ -945,15 +987,56 @@ void TurboAssembler::ConvertDoubleToInt64(const DoubleRegister double_input,
 void TurboAssembler::ConvertDoubleToUnsignedInt64(
     const DoubleRegister double_input, const Register dst,
     const DoubleRegister double_dst, FPRoundingMode rounding_mode) {
-  if (rounding_mode == kRoundToZero) {
-    fctiduz(double_dst, double_input);
-  } else {
-    SetRoundingMode(rounding_mode);
-    fctidu(double_dst, double_input);
-    ResetRoundingMode();
-  }
+  if (CpuFeatures::IsSupported(PPC_7_PLUS)) {
+    if (rounding_mode == kRoundToZero) {
+      fctiduz(double_dst, double_input);
+    } else {
+      SetRoundingMode(rounding_mode);
+      fctidu(double_dst, double_input);
+      ResetRoundingMode();
+    }
 
-  MovDoubleToInt64(dst, double_dst);
+    MovDoubleToInt64(dst, double_dst);
+  } else {
+    Label safe_size;
+    Label done;
+    mov(dst, Operand(1593835520));  // bit pattern for 2^63 as a float
+    stw(dst, MemOperand(sp, -kFloatSize));
+    nop(GROUP_ENDING_NOP);  // LHS/RAW optimization
+    lfs(double_dst, MemOperand(sp, -kFloatSize));
+    fcmpu(double_input, double_dst);
+    blt(&safe_size);
+    // Subtract 2^63, then OR the top bit of the uint64 to add back
+    fsub(double_dst, double_input, double_dst);
+    if (rounding_mode == kRoundToZero) {
+      fctidz(double_dst, double_dst);
+    } else {
+      SetRoundingMode(rounding_mode);
+      fctid(double_dst, double_dst);
+      ResetRoundingMode();
+    }
+    // set r0 to -1, then clear all but the MSB.
+    mov(r0, Operand(-1));
+    rldicr(r0, r0, 0, 0);
+    stfd(double_dst, MemOperand(sp, -kDoubleSize));
+    nop(GROUP_ENDING_NOP);  // LHS/RAW optimization
+    ld(dst, MemOperand(sp, -kDoubleSize));
+    orx(dst, dst, r0);
+    b(&done);
+    // Handling for values smaller than 2^63.
+    bind(&safe_size);
+    if (rounding_mode == kRoundToZero) {
+      fctidz(double_dst, double_input);
+    } else {
+      SetRoundingMode(rounding_mode);
+      fctid(double_dst, double_input);
+      ResetRoundingMode();
+    }
+    stfd(double_dst, MemOperand(sp, -kDoubleSize));
+    nop(GROUP_ENDING_NOP);  // LHS/RAW optimization
+    ld(dst, MemOperand(sp, -kDoubleSize));
+    bind(&done);
+  }
 }
 #endif
 
@@ -2280,23 +2363,20 @@ void TurboAssembler::LoadDoubleLiteral(DoubleRegister result, Double value,
   }
 #endif
 
-  addi(sp, sp, Operand(-kDoubleSize));
 #if V8_TARGET_ARCH_PPC64
   mov(scratch, Operand(litVal.ival));
-  std(scratch, MemOperand(sp));
+  std(scratch, MemOperand(sp, -kDoubleSize));
 #else
   LoadIntLiteral(scratch, litVal.ival[0]);
-  stw(scratch, MemOperand(sp, 0));
+  stw(scratch, MemOperand(sp, -kDoubleSize));
   LoadIntLiteral(scratch, litVal.ival[1]);
-  stw(scratch, MemOperand(sp, 4));
+  stw(scratch, MemOperand(sp, -kDoubleSize + 4));
 #endif
   nop(GROUP_ENDING_NOP);  // LHS/RAW optimization
-  lfd(result, MemOperand(sp, 0));
-  addi(sp, sp, Operand(kDoubleSize));
+  lfd(result, MemOperand(sp, -kDoubleSize));
 }
 
-void TurboAssembler::MovIntToDouble(DoubleRegister dst, Register src,
-                                    Register scratch) {
+void TurboAssembler::MovIntToDouble(DoubleRegister dst, Register src, Register scratch) {
 // sign-extend src to 64-bit
 #if V8_TARGET_ARCH_PPC64
   if (CpuFeatures::IsSupported(FPR_GPR_MOV)) {
@@ -2306,22 +2386,19 @@ void TurboAssembler::MovIntToDouble(DoubleRegister dst, Register src,
 #endif
 
   DCHECK(src != scratch);
-  subi(sp, sp, Operand(kDoubleSize));
 #if V8_TARGET_ARCH_PPC64
   extsw(scratch, src);
-  std(scratch, MemOperand(sp, 0));
+  std(scratch, MemOperand(sp, -kDoubleSize));
 #else
   srawi(scratch, src, 31);
-  stw(scratch, MemOperand(sp, Register::kExponentOffset));
-  stw(src, MemOperand(sp, Register::kMantissaOffset));
+  stw(scratch, MemOperand(sp, -kDoubleSize + Register::kExponentOffset));
+  stw(src, MemOperand(sp, -kDoubleSize + Register::kMantissaOffset));
 #endif
   nop(GROUP_ENDING_NOP);  // LHS/RAW optimization
-  lfd(dst, MemOperand(sp, 0));
-  addi(sp, sp, Operand(kDoubleSize));
+  lfd(dst, MemOperand(sp, -kDoubleSize));
 }
 
-void TurboAssembler::MovUnsignedIntToDouble(DoubleRegister dst, Register src,
-                                            Register scratch) {
+void TurboAssembler::MovUnsignedIntToDouble(DoubleRegister dst, Register src, Register scratch) {
 // zero-extend src to 64-bit
 #if V8_TARGET_ARCH_PPC64
   if (CpuFeatures::IsSupported(FPR_GPR_MOV)) {
@@ -2331,18 +2408,16 @@ void TurboAssembler::MovUnsignedIntToDouble(DoubleRegister dst, Register src,
 #endif
 
   DCHECK(src != scratch);
-  subi(sp, sp, Operand(kDoubleSize));
 #if V8_TARGET_ARCH_PPC64
   clrldi(scratch, src, Operand(32));
-  std(scratch, MemOperand(sp, 0));
+  std(scratch, MemOperand(sp, -kDoubleSize));
 #else
   li(scratch, Operand::Zero());
-  stw(scratch, MemOperand(sp, Register::kExponentOffset));
-  stw(src, MemOperand(sp, Register::kMantissaOffset));
+  stw(scratch, MemOperand(sp, -kDoubleSize + Register::kExponentOffset));
+  stw(src, MemOperand(sp, -kDoubleSize + Register::kMantissaOffset));
 #endif
   nop(GROUP_ENDING_NOP);  // LHS/RAW optimization
-  lfd(dst, MemOperand(sp, 0));
-  addi(sp, sp, Operand(kDoubleSize));
+  lfd(dst, MemOperand(sp, -kDoubleSize));
 }
 
 void TurboAssembler::MovInt64ToDouble(DoubleRegister dst,
@@ -2359,14 +2434,13 @@ void TurboAssembler::MovInt64ToDouble(DoubleRegister dst,
 
   subi(sp, sp, Operand(kDoubleSize));
 #if V8_TARGET_ARCH_PPC64
-  std(src, MemOperand(sp, 0));
+  std(src, MemOperand(sp, -kDoubleSize));
 #else
-  stw(src_hi, MemOperand(sp, Register::kExponentOffset));
-  stw(src, MemOperand(sp, Register::kMantissaOffset));
+  stw(src_hi, MemOperand(sp, -kDoubleSize + Register::kExponentOffset));
+  stw(src, MemOperand(sp, -kDoubleSize + Register::kMantissaOffset));
 #endif
   nop(GROUP_ENDING_NOP);  // LHS/RAW optimization
-  lfd(dst, MemOperand(sp, 0));
-  addi(sp, sp, Operand(kDoubleSize));
+  lfd(dst, MemOperand(sp, -kDoubleSize));
 }
 
 #if V8_TARGET_ARCH_PPC64
@@ -2381,17 +2455,14 @@ void TurboAssembler::MovInt64ComponentsToDouble(DoubleRegister dst,
     return;
   }
 
-  subi(sp, sp, Operand(kDoubleSize));
-  stw(src_hi, MemOperand(sp, Register::kExponentOffset));
-  stw(src_lo, MemOperand(sp, Register::kMantissaOffset));
+  stw(src_hi, MemOperand(sp, -kDoubleSize + Register::kExponentOffset));
+  stw(src_lo, MemOperand(sp, -kDoubleSize + Register::kMantissaOffset));
   nop(GROUP_ENDING_NOP);  // LHS/RAW optimization
-  lfd(dst, MemOperand(sp));
-  addi(sp, sp, Operand(kDoubleSize));
+  lfd(dst, MemOperand(sp, -kDoubleSize));
 }
 #endif
 
-void TurboAssembler::InsertDoubleLow(DoubleRegister dst, Register src,
-                                     Register scratch) {
+void TurboAssembler::InsertDoubleLow(DoubleRegister dst, Register src, Register scratch) {
 #if V8_TARGET_ARCH_PPC64
   if (CpuFeatures::IsSupported(FPR_GPR_MOV)) {
     mffprd(scratch, dst);
@@ -2401,16 +2472,13 @@ void TurboAssembler::InsertDoubleLow(DoubleRegister dst, Register src,
   }
 #endif
 
-  subi(sp, sp, Operand(kDoubleSize));
-  stfd(dst, MemOperand(sp));
-  stw(src, MemOperand(sp, Register::kMantissaOffset));
+  stfd(dst, MemOperand(sp, -kDoubleSize));
+  stw(src, MemOperand(sp, -kDoubleSize + Register::kMantissaOffset));
   nop(GROUP_ENDING_NOP);  // LHS/RAW optimization
-  lfd(dst, MemOperand(sp));
-  addi(sp, sp, Operand(kDoubleSize));
+  lfd(dst, MemOperand(sp, -kDoubleSize));
 }
 
-void TurboAssembler::InsertDoubleHigh(DoubleRegister dst, Register src,
-                                      Register scratch) {
+void TurboAssembler::InsertDoubleHigh(DoubleRegister dst, Register src, Register scratch) {
 #if V8_TARGET_ARCH_PPC64
   if (CpuFeatures::IsSupported(FPR_GPR_MOV)) {
     mffprd(scratch, dst);
@@ -2420,12 +2488,10 @@ void TurboAssembler::InsertDoubleHigh(DoubleRegister dst, Register src,
   }
 #endif
 
-  subi(sp, sp, Operand(kDoubleSize));
-  stfd(dst, MemOperand(sp));
-  stw(src, MemOperand(sp, Register::kExponentOffset));
+  stfd(dst, MemOperand(sp, -kDoubleSize));
+  stw(src, MemOperand(sp, -kDoubleSize + Register::kExponentOffset));
   nop(GROUP_ENDING_NOP);  // LHS/RAW optimization
-  lfd(dst, MemOperand(sp));
-  addi(sp, sp, Operand(kDoubleSize));
+  lfd(dst, MemOperand(sp, -kDoubleSize));
 }
 
 void TurboAssembler::MovDoubleLowToInt(Register dst, DoubleRegister src) {
@@ -2436,11 +2502,9 @@ void TurboAssembler::MovDoubleLowToInt(Register dst, DoubleRegister src) {
   }
 #endif
 
-  subi(sp, sp, Operand(kDoubleSize));
-  stfd(src, MemOperand(sp));
+  stfd(src, MemOperand(sp, -kDoubleSize));
   nop(GROUP_ENDING_NOP);  // LHS/RAW optimization
-  lwz(dst, MemOperand(sp, Register::kMantissaOffset));
-  addi(sp, sp, Operand(kDoubleSize));
+  lwz(dst, MemOperand(sp, -kDoubleSize + Register::kMantissaOffset));
 }
 
 void TurboAssembler::MovDoubleHighToInt(Register dst, DoubleRegister src) {
@@ -2452,11 +2516,9 @@ void TurboAssembler::MovDoubleHighToInt(Register dst, DoubleRegister src) {
   }
 #endif
 
-  subi(sp, sp, Operand(kDoubleSize));
-  stfd(src, MemOperand(sp));
+  stfd(src, MemOperand(sp, -kDoubleSize));
   nop(GROUP_ENDING_NOP);  // LHS/RAW optimization
-  lwz(dst, MemOperand(sp, Register::kExponentOffset));
-  addi(sp, sp, Operand(kDoubleSize));
+  lwz(dst, MemOperand(sp, -kDoubleSize + Register::kExponentOffset));
 }
 
 void TurboAssembler::MovDoubleToInt64(
@@ -2471,36 +2533,29 @@ void TurboAssembler::MovDoubleToInt64(
   }
 #endif
 
-  subi(sp, sp, Operand(kDoubleSize));
-  stfd(src, MemOperand(sp));
+  stfd(src, MemOperand(sp, -kDoubleSize));
   nop(GROUP_ENDING_NOP);  // LHS/RAW optimization
 #if V8_TARGET_ARCH_PPC64
-  ld(dst, MemOperand(sp, 0));
+  ld(dst, MemOperand(sp, -kDoubleSize));
 #else
-  lwz(dst_hi, MemOperand(sp, Register::kExponentOffset));
-  lwz(dst, MemOperand(sp, Register::kMantissaOffset));
+  lwz(dst_hi, MemOperand(sp, -kDoubleSize + Register::kExponentOffset));
+  lwz(dst, MemOperand(sp, -kDoubleSize + Register::kMantissaOffset));
 #endif
-  addi(sp, sp, Operand(kDoubleSize));
 }
 
 void TurboAssembler::MovIntToFloat(DoubleRegister dst, Register src) {
-  subi(sp, sp, Operand(kFloatSize));
-  stw(src, MemOperand(sp, 0));
+  stw(src, MemOperand(sp, -kFloatSize));
   nop(GROUP_ENDING_NOP);  // LHS/RAW optimization
-  lfs(dst, MemOperand(sp, 0));
-  addi(sp, sp, Operand(kFloatSize));
+  lfs(dst, MemOperand(sp, -kFloatSize));
 }
 
 void TurboAssembler::MovFloatToInt(Register dst, DoubleRegister src) {
-  subi(sp, sp, Operand(kFloatSize));
-  stfs(src, MemOperand(sp, 0));
+  stfs(src, MemOperand(sp, -kFloatSize));
   nop(GROUP_ENDING_NOP);  // LHS/RAW optimization
-  lwz(dst, MemOperand(sp, 0));
-  addi(sp, sp, Operand(kFloatSize));
+  lwz(dst, MemOperand(sp, -kFloatSize));
 }
 
-void TurboAssembler::Add(Register dst, Register src, intptr_t value,
-                         Register scratch) {
+void TurboAssembler::Add(Register dst, Register src, intptr_t value, Register scratch) {
   if (is_int16(value)) {
     addi(dst, src, Operand(value));
   } else {
@@ -2509,8 +2564,7 @@ void TurboAssembler::Add(Register dst, Register src, intptr_t value,
   }
 }
 
-void TurboAssembler::Cmpi(Register src1, const Operand& src2, Register scratch,
-                          CRegister cr) {
+void TurboAssembler::Cmpi(Register src1, const Operand& src2, Register scratch, CRegister cr) {
   intptr_t value = src2.immediate();
   if (is_int16(value)) {
     cmpi(src1, src2, cr);
@@ -2520,8 +2574,7 @@ void TurboAssembler::Cmpi(Register src1, const Operand& src2, Register scratch,
   }
 }
 
-void TurboAssembler::Cmpli(Register src1, const Operand& src2, Register scratch,
-                           CRegister cr) {
+void TurboAssembler::Cmpli(Register src1, const Operand& src2, Register scratch, CRegister cr) {
   intptr_t value = src2.immediate();
   if (is_uint16(value)) {
     cmpli(src1, src2, cr);
@@ -2531,8 +2584,7 @@ void TurboAssembler::Cmpli(Register src1, const Operand& src2, Register scratch,
   }
 }
 
-void TurboAssembler::Cmpwi(Register src1, const Operand& src2, Register scratch,
-                           CRegister cr) {
+void TurboAssembler::Cmpwi(Register src1, const Operand& src2, Register scratch, CRegister cr) {
   intptr_t value = src2.immediate();
   if (is_int16(value)) {
     cmpwi(src1, src2, cr);
@@ -2542,8 +2594,7 @@ void TurboAssembler::Cmpwi(Register src1, const Operand& src2, Register scratch,
   }
 }
 
-void MacroAssembler::Cmplwi(Register src1, const Operand& src2,
-                            Register scratch, CRegister cr) {
+void MacroAssembler::Cmplwi(Register src1, const Operand& src2, Register scratch, CRegister cr) {
   intptr_t value = src2.immediate();
   if (is_uint16(value)) {
     cmplwi(src1, src2, cr);
@@ -2553,8 +2604,7 @@ void MacroAssembler::Cmplwi(Register src1, const Operand& src2,
   }
 }
 
-void MacroAssembler::And(Register ra, Register rs, const Operand& rb,
-                         RCBit rc) {
+void MacroAssembler::And(Register ra, Register rs, const Operand& rb, RCBit rc) {
   if (rb.is_reg()) {
     and_(ra, rs, rb.rm(), rc);
   } else {
@@ -2586,8 +2636,7 @@ void MacroAssembler::Or(Register ra, Register rs, const Operand& rb, RCBit rc) {
   }
 }
 
-void MacroAssembler::Xor(Register ra, Register rs, const Operand& rb,
-                         RCBit rc) {
+void MacroAssembler::Xor(Register ra, Register rs, const Operand& rb, RCBit rc) {
   if (rb.is_reg()) {
     xor_(ra, rs, rb.rm(), rc);
   } else {
@@ -2603,8 +2652,7 @@ void MacroAssembler::Xor(Register ra, Register rs, const Operand& rb,
   }
 }
 
-void MacroAssembler::CmpSmiLiteral(Register src1, Smi smi, Register scratch,
-                                   CRegister cr) {
+void MacroAssembler::CmpSmiLiteral(Register src1, Smi smi, Register scratch, CRegister cr) {
 #if V8_TARGET_ARCH_PPC64
   LoadSmiLiteral(scratch, smi);
   cmp(src1, scratch, cr);
@@ -2613,8 +2661,7 @@ void MacroAssembler::CmpSmiLiteral(Register src1, Smi smi, Register scratch,
 #endif
 }
 
-void MacroAssembler::CmplSmiLiteral(Register src1, Smi smi, Register scratch,
-                                    CRegister cr) {
+void MacroAssembler::CmplSmiLiteral(Register src1, Smi smi, Register scratch, CRegister cr) {
 #if V8_TARGET_ARCH_PPC64
   LoadSmiLiteral(scratch, smi);
   cmpl(src1, scratch, cr);
@@ -2623,8 +2670,7 @@ void MacroAssembler::CmplSmiLiteral(Register src1, Smi smi, Register scratch,
 #endif
 }
 
-void MacroAssembler::AddSmiLiteral(Register dst, Register src, Smi smi,
-                                   Register scratch) {
+void MacroAssembler::AddSmiLiteral(Register dst, Register src, Smi smi, Register scratch) {
 #if V8_TARGET_ARCH_PPC64
   LoadSmiLiteral(scratch, smi);
   add(dst, src, scratch);
@@ -2633,8 +2679,7 @@ void MacroAssembler::AddSmiLiteral(Register dst, Register src, Smi smi,
 #endif
 }
 
-void MacroAssembler::SubSmiLiteral(Register dst, Register src, Smi smi,
-                                   Register scratch) {
+void MacroAssembler::SubSmiLiteral(Register dst, Register src, Smi smi, Register scratch) {
 #if V8_TARGET_ARCH_PPC64
   LoadSmiLiteral(scratch, smi);
   sub(dst, src, scratch);
@@ -2643,8 +2688,7 @@ void MacroAssembler::SubSmiLiteral(Register dst, Register src, Smi smi,
 #endif
 }
 
-void MacroAssembler::AndSmiLiteral(Register dst, Register src, Smi smi,
-                                   Register scratch, RCBit rc) {
+void MacroAssembler::AndSmiLiteral(Register dst, Register src, Smi smi, Register scratch, RCBit rc) {
 #if V8_TARGET_ARCH_PPC64
   LoadSmiLiteral(scratch, smi);
   and_(dst, src, scratch, rc);
@@ -2654,8 +2698,7 @@ void MacroAssembler::AndSmiLiteral(Register dst, Register src, Smi smi,
 }
 
 // Load a "pointer" sized value from the memory location
-void TurboAssembler::LoadP(Register dst, const MemOperand& mem,
-                           Register scratch) {
+void TurboAssembler::LoadP(Register dst, const MemOperand& mem, Register scratch) {
   DCHECK_EQ(mem.rb(), no_reg);
   int offset = mem.offset();
   int misaligned = (offset & 3);
@@ -2687,8 +2730,7 @@ void TurboAssembler::LoadP(Register dst, const MemOperand& mem,
   }
 }
 
-void TurboAssembler::LoadPU(Register dst, const MemOperand& mem,
-                            Register scratch) {
+void TurboAssembler::LoadPU(Register dst, const MemOperand& mem, Register scratch) {
   int offset = mem.offset();
 
   if (!is_int16(offset)) {
@@ -2706,8 +2748,7 @@ void TurboAssembler::LoadPU(Register dst, const MemOperand& mem,
 }
 
 // Store a "pointer" sized value to the memory location
-void TurboAssembler::StoreP(Register src, const MemOperand& mem,
-                            Register scratch) {
+void TurboAssembler::StoreP(Register src, const MemOperand& mem, Register scratch) {
   int offset = mem.offset();
 
   if (!is_int16(offset)) {
@@ -2738,8 +2779,7 @@ void TurboAssembler::StoreP(Register src, const MemOperand& mem,
   }
 }
 
-void TurboAssembler::StorePU(Register src, const MemOperand& mem,
-                             Register scratch) {
+void TurboAssembler::StorePU(Register src, const MemOperand& mem, Register scratch) {
   int offset = mem.offset();
 
   if (!is_int16(offset)) {
@@ -2756,8 +2796,7 @@ void TurboAssembler::StorePU(Register src, const MemOperand& mem,
   }
 }
 
-void TurboAssembler::LoadWordArith(Register dst, const MemOperand& mem,
-                                   Register scratch) {
+void TurboAssembler::LoadWordArith(Register dst, const MemOperand& mem, Register scratch) {
   int offset = mem.offset();
 
   if (!is_int16(offset)) {
@@ -2784,8 +2823,7 @@ void TurboAssembler::LoadWordArith(Register dst, const MemOperand& mem,
 
 // Variable length depending on whether offset fits into immediate field
 // MemOperand currently only supports d-form
-void MacroAssembler::LoadWord(Register dst, const MemOperand& mem,
-                              Register scratch) {
+void MacroAssembler::LoadWord(Register dst, const MemOperand& mem, Register scratch) {
   Register base = mem.ra();
   int offset = mem.offset();
 
@@ -2799,8 +2837,7 @@ void MacroAssembler::LoadWord(Register dst, const MemOperand& mem,
 
 // Variable length depending on whether offset fits into immediate field
 // MemOperand current only supports d-form
-void MacroAssembler::StoreWord(Register src, const MemOperand& mem,
-                               Register scratch) {
+void MacroAssembler::StoreWord(Register src, const MemOperand& mem, Register scratch) {
   Register base = mem.ra();
   int offset = mem.offset();
 
@@ -2812,8 +2849,7 @@ void MacroAssembler::StoreWord(Register src, const MemOperand& mem,
   }
 }
 
-void MacroAssembler::LoadHalfWordArith(Register dst, const MemOperand& mem,
-                                       Register scratch) {
+void MacroAssembler::LoadHalfWordArith(Register dst, const MemOperand& mem, Register scratch) {
   int offset = mem.offset();
 
   if (!is_int16(offset)) {
@@ -2827,8 +2863,7 @@ void MacroAssembler::LoadHalfWordArith(Register dst, const MemOperand& mem,
 
 // Variable length depending on whether offset fits into immediate field
 // MemOperand currently only supports d-form
-void MacroAssembler::LoadHalfWord(Register dst, const MemOperand& mem,
-                                  Register scratch) {
+void MacroAssembler::LoadHalfWord(Register dst, const MemOperand& mem, Register scratch) {
   Register base = mem.ra();
   int offset = mem.offset();
 
@@ -2843,8 +2878,7 @@ void MacroAssembler::LoadHalfWord(Register dst, const MemOperand& mem,
 
 // Variable length depending on whether offset fits into immediate field
 // MemOperand current only supports d-form
-void MacroAssembler::StoreHalfWord(Register src, const MemOperand& mem,
-                                   Register scratch) {
+void MacroAssembler::StoreHalfWord(Register src, const MemOperand& mem, Register scratch) {
   Register base = mem.ra();
   int offset = mem.offset();
 
@@ -2858,8 +2892,7 @@ void MacroAssembler::StoreHalfWord(Register src, const MemOperand& mem,
 
 // Variable length depending on whether offset fits into immediate field
 // MemOperand currently only supports d-form
-void MacroAssembler::LoadByte(Register dst, const MemOperand& mem,
-                              Register scratch) {
+void MacroAssembler::LoadByte(Register dst, const MemOperand& mem, Register scratch) {
   Register base = mem.ra();
   int offset = mem.offset();
 
@@ -2873,8 +2906,7 @@ void MacroAssembler::LoadByte(Register dst, const MemOperand& mem,
 
 // Variable length depending on whether offset fits into immediate field
 // MemOperand current only supports d-form
-void MacroAssembler::StoreByte(Register src, const MemOperand& mem,
-                               Register scratch) {
+void MacroAssembler::StoreByte(Register src, const MemOperand& mem, Register scratch) {
   Register base = mem.ra();
   int offset = mem.offset();
 
@@ -2886,8 +2918,7 @@ void MacroAssembler::StoreByte(Register src, const MemOperand& mem,
   }
 }
 
-void TurboAssembler::LoadDouble(DoubleRegister dst, const MemOperand& mem,
-                                Register scratch) {
+void TurboAssembler::LoadDouble(DoubleRegister dst, const MemOperand& mem, Register scratch) {
   Register base = mem.ra();
   int offset = mem.offset();
 
@@ -2899,8 +2930,7 @@ void TurboAssembler::LoadDouble(DoubleRegister dst, const MemOperand& mem,
   }
 }
 
-void TurboAssembler::LoadFloat32(DoubleRegister dst, const MemOperand& mem,
-                                 Register scratch) {
+void TurboAssembler::LoadFloat32(DoubleRegister dst, const MemOperand& mem, Register scratch) {
   Register base = mem.ra();
   int offset = mem.offset();
 
@@ -2912,8 +2942,7 @@ void TurboAssembler::LoadFloat32(DoubleRegister dst, const MemOperand& mem,
   }
 }
 
-void MacroAssembler::LoadDoubleU(DoubleRegister dst, const MemOperand& mem,
-                                 Register scratch) {
+void MacroAssembler::LoadDoubleU(DoubleRegister dst, const MemOperand& mem, Register scratch) {
   Register base = mem.ra();
   int offset = mem.offset();
 
@@ -2925,8 +2954,7 @@ void MacroAssembler::LoadDoubleU(DoubleRegister dst, const MemOperand& mem,
   }
 }
 
-void TurboAssembler::LoadSingle(DoubleRegister dst, const MemOperand& mem,
-                                Register scratch) {
+void TurboAssembler::LoadSingle(DoubleRegister dst, const MemOperand& mem, Register scratch) {
   Register base = mem.ra();
   int offset = mem.offset();
 
@@ -2938,8 +2966,7 @@ void TurboAssembler::LoadSingle(DoubleRegister dst, const MemOperand& mem,
   }
 }
 
-void TurboAssembler::LoadSingleU(DoubleRegister dst, const MemOperand& mem,
-                                 Register scratch) {
+void TurboAssembler::LoadSingleU(DoubleRegister dst, const MemOperand& mem, Register scratch) {
   Register base = mem.ra();
   int offset = mem.offset();
 
@@ -2951,8 +2978,7 @@ void TurboAssembler::LoadSingleU(DoubleRegister dst, const MemOperand& mem,
   }
 }
 
-void TurboAssembler::StoreDouble(DoubleRegister src, const MemOperand& mem,
-                                 Register scratch) {
+void TurboAssembler::StoreDouble(DoubleRegister src, const MemOperand& mem, Register scratch) {
   Register base = mem.ra();
   int offset = mem.offset();
 
@@ -2964,8 +2990,7 @@ void TurboAssembler::StoreDouble(DoubleRegister src, const MemOperand& mem,
   }
 }
 
-void TurboAssembler::StoreDoubleU(DoubleRegister src, const MemOperand& mem,
-                                  Register scratch) {
+void TurboAssembler::StoreDoubleU(DoubleRegister src, const MemOperand& mem, Register scratch) {
   Register base = mem.ra();
   int offset = mem.offset();
 
@@ -2977,8 +3002,7 @@ void TurboAssembler::StoreDoubleU(DoubleRegister src, const MemOperand& mem,
   }
 }
 
-void TurboAssembler::StoreSingle(DoubleRegister src, const MemOperand& mem,
-                                 Register scratch) {
+void TurboAssembler::StoreSingle(DoubleRegister src, const MemOperand& mem, Register scratch) {
   Register base = mem.ra();
   int offset = mem.offset();
 
@@ -2990,8 +3014,7 @@ void TurboAssembler::StoreSingle(DoubleRegister src, const MemOperand& mem,
   }
 }
 
-void TurboAssembler::StoreSingleU(DoubleRegister src, const MemOperand& mem,
-                                  Register scratch) {
+void TurboAssembler::StoreSingleU(DoubleRegister src, const MemOperand& mem, Register scratch) {
   Register base = mem.ra();
   int offset = mem.offset();
 
@@ -3075,8 +3098,7 @@ void TurboAssembler::SwapP(MemOperand src, MemOperand dst, Register scratch_0,
   }
 }
 
-void TurboAssembler::SwapFloat32(DoubleRegister src, DoubleRegister dst,
-                                 DoubleRegister scratch) {
+void TurboAssembler::SwapFloat32(DoubleRegister src, DoubleRegister dst, DoubleRegister scratch) {
   if (src == dst) return;
   DCHECK(!AreAliased(src, dst, scratch));
   fmr(scratch, src);
@@ -3084,8 +3106,7 @@ void TurboAssembler::SwapFloat32(DoubleRegister src, DoubleRegister dst,
   fmr(dst, scratch);
 }
 
-void TurboAssembler::SwapFloat32(DoubleRegister src, MemOperand dst,
-                                 DoubleRegister scratch) {
+void TurboAssembler::SwapFloat32(DoubleRegister src, MemOperand dst, DoubleRegister scratch) {
   DCHECK(!AreAliased(src, scratch));
   fmr(scratch, src);
   LoadSingle(src, dst, r0);
@@ -3102,8 +3123,7 @@ void TurboAssembler::SwapFloat32(MemOperand src, MemOperand dst,
   StoreSingle(scratch_1, src, r0);
 }
 
-void TurboAssembler::SwapDouble(DoubleRegister src, DoubleRegister dst,
-                                DoubleRegister scratch) {
+void TurboAssembler::SwapDouble(DoubleRegister src, DoubleRegister dst, DoubleRegister scratch) {
   if (src == dst) return;
   DCHECK(!AreAliased(src, dst, scratch));
   fmr(scratch, src);
@@ -3111,8 +3131,7 @@ void TurboAssembler::SwapDouble(DoubleRegister src, DoubleRegister dst,
   fmr(dst, scratch);
 }
 
-void TurboAssembler::SwapDouble(DoubleRegister src, MemOperand dst,
-                                DoubleRegister scratch) {
+void TurboAssembler::SwapDouble(DoubleRegister src, MemOperand dst, DoubleRegister scratch) {
   DCHECK(!AreAliased(src, scratch));
   fmr(scratch, src);
   LoadDouble(src, dst, r0);
