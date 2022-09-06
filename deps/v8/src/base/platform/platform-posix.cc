@@ -420,7 +420,11 @@ void OS::DebugBreak() {
 #elif V8_HOST_ARCH_MIPS64
   asm("break");
 #elif V8_HOST_ARCH_PPC || V8_HOST_ARCH_PPC64
+#if V8_OS_MACOSX
+  __asm__("twge r2,r2");
+#else // AIX, ELF
   asm("twge 2,2");
+#endif
 #elif V8_HOST_ARCH_IA32
   asm("int $3");
 #elif V8_HOST_ARCH_X64

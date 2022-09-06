@@ -22,14 +22,13 @@
 
 #if (V8_HOST_ARCH_PPC || V8_HOST_ARCH_PPC64) &&                    \
     (V8_OS_AIX || (V8_TARGET_ARCH_PPC64 && V8_TARGET_BIG_ENDIAN && \
-                   (!defined(_CALL_ELF) || _CALL_ELF == 1)))
+    !V8_OS_MACOSX && (!defined(_CALL_ELF) || _CALL_ELF == 1)))
 #define ABI_USES_FUNCTION_DESCRIPTORS 1
 #else
 #define ABI_USES_FUNCTION_DESCRIPTORS 0
 #endif
 
-#if !(V8_HOST_ARCH_PPC || V8_HOST_ARCH_PPC64) || V8_OS_AIX || \
-    V8_TARGET_ARCH_PPC64
+#if !(V8_HOST_ARCH_PPC || V8_HOST_ARCH_PPC64) || V8_OS_AIX || V8_OS_MACOSX || V8_TARGET_ARCH_PPC64
 #define ABI_PASSES_HANDLES_IN_REGS 1
 #else
 #define ABI_PASSES_HANDLES_IN_REGS 0
@@ -44,18 +43,20 @@
 
 #if !(V8_HOST_ARCH_PPC || V8_HOST_ARCH_PPC64) || \
     (V8_TARGET_ARCH_PPC64 &&                     \
-     (V8_TARGET_LITTLE_ENDIAN || (defined(_CALL_ELF) && _CALL_ELF == 2)))
+    (V8_TARGET_LITTLE_ENDIAN || (defined(_CALL_ELF) && _CALL_ELF == 2)))
 #define ABI_CALL_VIA_IP 1
 #else
 #define ABI_CALL_VIA_IP 0
 #endif
 
-#if !(V8_HOST_ARCH_PPC || V8_HOST_ARCH_PPC64) || V8_OS_AIX || \
-    V8_TARGET_ARCH_PPC64
+#if !V8_OS_MACOSX // Darwin does not use TOC
+#if !(V8_HOST_ARCH_PPC || V8_HOST_ARCH_PPC64) || V8_OS_AIX || V8_TARGET_ARCH_PPC64
 #define ABI_TOC_REGISTER 2
 #else
 #define ABI_TOC_REGISTER 13
 #endif
+#endif
+
 namespace v8 {
 namespace internal {
 

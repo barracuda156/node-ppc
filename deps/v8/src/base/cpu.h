@@ -71,9 +71,12 @@ class V8_BASE_EXPORT CPU final {
     PPC_POWER8,
     PPC_POWER9,
     PPC_POWER10,
+    PPC_G3,
     PPC_G4,
     PPC_G5,
-    PPC_PA6T
+    PPC_PA6T,
+    PPC_E5500,
+    PPC_E6500
   };
 
   // General features
@@ -116,6 +119,10 @@ class V8_BASE_EXPORT CPU final {
   bool is_fp64_mode() const { return is_fp64_mode_; }
   bool has_msa() const { return has_msa_; }
 
+  // PowerPC features
+  bool has_icache_snoop() const { return has_icache_snoop_; }
+  bool has_isel() const { return has_isel_; }
+
  private:
   char vendor_[13];
   int stepping_;
@@ -157,6 +164,8 @@ class V8_BASE_EXPORT CPU final {
   bool is_fp64_mode_;
   bool has_non_stop_time_stamp_counter_;
   bool has_msa_;
+  bool has_icache_snoop_;
+  bool has_isel_;
 };
 
 }  // namespace base

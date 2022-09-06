@@ -10,7 +10,7 @@
 #if V8_OS_LINUX
 #include <linux/auxvec.h>  // AT_HWCAP
 #endif
-#if V8_GLIBC_PREREQ(2, 16)
+#if V8_GLIBC_PREREQ(2, 16) || (V8_OS_LINUX && (V8_HOST_ARCH_PPC || V8_HOST_ARCH_PPC64))
 #include <sys/auxv.h>  // getauxval()
 #endif
 #if V8_OS_QNX
@@ -18,6 +18,12 @@
 #endif
 #if (V8_OS_LINUX && (V8_HOST_ARCH_PPC || V8_HOST_ARCH_PPC64))
 #include <elf.h>
+#endif
+#if (V8_OS_MACOSX && (V8_HOST_ARCH_PPC || V8_HOST_ARCH_PPC64))
+#include <mach/mach.h>
+#include <mach/mach_host.h>
+#include <mach/host_info.h>
+#include <mach/machine.h>
 #endif
 #if V8_OS_AIX
 #include <sys/systemcfg.h>  // _system_configuration
@@ -611,59 +617,74 @@ CPU::CPU()
 
 #ifndef USE_SIMULATOR
 #if V8_OS_LINUX
-  // Read processor info from /proc/self/auxv.
-  char* auxv_cpu_type = nullptr;
-  FILE* fp = fopen("/proc/self/auxv", "r");
-  if (fp != nullptr) {
-#if V8_TARGET_ARCH_PPC64
-    Elf64_auxv_t entry;
-#else
-    Elf32_auxv_t entry;
-#endif
-    for (;;) {
-      size_t n = fread(&entry, sizeof(entry), 1, fp);
-      if (n == 0 || entry.a_type == AT_NULL) {
-        break;
-      }
-      switch (entry.a_type) {
-        case AT_PLATFORM:
-          auxv_cpu_type = reinterpret_cast<char*>(entry.a_un.a_val);
-          break;
-        case AT_ICACHEBSIZE:
-          icache_line_size_ = entry.a_un.a_val;
-          break;
-        case AT_DCACHEBSIZE:
-          dcache_line_size_ = entry.a_un.a_val;
-          break;
-      }
-    }
-    fclose(fp);
+  // Read processor info from getauxval() (needs at least glibc 2.18 or musl).
+  icache_line_size_ = static_cast<int>(getauxval(AT_ICACHEBSIZE));
+  dcache_line_size_ = static_cast<int>(getauxval(AT_DCACHEBSIZE));
+  const unsigned long hwcap = getauxval(AT_HWCAP);
+  const unsigned long hwcap2 = getauxval(AT_HWCAP2);
+  const char* platform = reinterpret_cast<const char*>(getauxval(AT_PLATFORM));
+
+  // NOTE: AT_HWCAP ISA version bits aren’t cumulative, so it’s necessary
+  // to compare against a mask of all supported versions and CPUs, up to
+  // ISA v. 2.06, which *is* set for later CPUs. In contrast, the AT_HWCAP2
+  // ISA version bits from v. 2.07 onward are set cumulatively, so POWER10
+  // will set the ISA version bits from v. 2.06 (in AT_HWCAP) through v. 3.1.
+
+  // i-cache coherency requires Power ISA v. 2.02 or later; has its own flag.
+  has_icache_snoop_ = (hwcap & PPC_FEATURE_ICACHE_SNOOP);
+
+  // requires Power ISA v. 2.03 or later, or the HAS_ISEL bit (e.g. e6500).
+  has_isel_ = (hwcap & (PPC_FEATURE_POWER5_PLUS | PPC_FEATURE_ARCH_2_05 |
+      PPC_FEATURE_PA6T | PPC_FEATURE_POWER6_EXT | PPC_FEATURE_ARCH_2_06)) ||
+      (hwcap2 & PPC_FEATURE2_HAS_ISEL);
+
+  // hwcap mask for older 64-bit PPC CPUs with Altivec, e.g. G5, Cell.
+  static const unsigned long kHwcapMaskPPCG5 =
+      (PPC_FEATURE_64 | PPC_FEATURE_HAS_ALTIVEC);
+
+  if (hwcap2 & PPC_FEATURE2_ARCH_3_1) {
+    part_ = PPC_POWER10;
+  } else if (hwcap2 & PPC_FEATURE2_ARCH_3_00) {
+    part_ = PPC_POWER9;
+  } else if (hwcap2 & PPC_FEATURE2_ARCH_2_07) {
+    part_ = PPC_POWER8;
+  } else if (hwcap & PPC_FEATURE_ARCH_2_06) {
+    part_ = PPC_POWER7;
+  } else if (hwcap & PPC_FEATURE_ARCH_2_05) {
+    part_ = PPC_POWER6;
+  } else if (hwcap & (PPC_FEATURE_POWER5 | PPC_FEATURE_POWER5_PLUS)) {
+    part_ = PPC_POWER5;
+  } else if (hwcap & PPC_FEATURE_PA6T) {
+    part_ = PPC_PA6T;
+  } else if (strcmp(platform, "ppce6500") == 0) {
+    part_ = PPC_E6500;
+  } else if (strcmp(platform, "ppce5500") == 0) {
+    part_ = PPC_E5500;
+  } else if ((hwcap & kHwcapMaskPPCG5) == kHwcapMaskPPCG5) {
+    part_ = PPC_G5;
+  } else if (hwcap & PPC_FEATURE_HAS_ALTIVEC) {
+    part_ = PPC_G4;
+  } else if (strcmp(platform, "ppc440") == 0) {
+    part_ = PPC_G4;
+  } else {
+    part_ = PPC_G3;
   }
 
-  part_ = -1;
-  if (auxv_cpu_type) {
-    if (strcmp(auxv_cpu_type, "power10") == 0) {
-      part_ = PPC_POWER10;
-    }
-    else if (strcmp(auxv_cpu_type, "power9") == 0) {
-      part_ = PPC_POWER9;
-    } else if (strcmp(auxv_cpu_type, "power8") == 0) {
-      part_ = PPC_POWER8;
-    } else if (strcmp(auxv_cpu_type, "power7") == 0) {
-      part_ = PPC_POWER7;
-    } else if (strcmp(auxv_cpu_type, "power6") == 0) {
-      part_ = PPC_POWER6;
-    } else if (strcmp(auxv_cpu_type, "power5") == 0) {
-      part_ = PPC_POWER5;
-    } else if (strcmp(auxv_cpu_type, "ppc970") == 0) {
+#elif V8_OS_MACOSX
+struct host_basic_info host_basic_info;
+  switch(host_basic_info.cpu_subtype) {
+    case CPU_SUBTYPE_POWERPC_970:
       part_ = PPC_G5;
-    } else if (strcmp(auxv_cpu_type, "ppc7450") == 0) {
+      break;
+    case CPU_SUBTYPE_POWERPC_7450:
       part_ = PPC_G4;
-    } else if (strcmp(auxv_cpu_type, "ppc440") == 0) {
+      break;
+    case CPU_SUBTYPE_POWERPC_7400:
       part_ = PPC_G4;
-    } else if (strcmp(auxv_cpu_type, "pa6t") == 0) {
-      part_ = PPC_PA6T;
-    }
+      break;
+    case CPU_SUBTYPE_POWERPC_750:
+      part_ = PPC_G3;
+      break;
   }
 
 #elif V8_OS_AIX
@@ -684,9 +705,13 @@ CPU::CPU()
       part_ = PPC_POWER6;
       break;
     case POWER_5:
+    default:
       part_ = PPC_POWER5;
       break;
   }
+
+  has_icache_snoop_ = true;
+  has_isel_ = (part_ != PPC_POWER5);  // isel was added in POWER6 (ISA v. 2.03)
 #endif  // V8_OS_AIX
 #endif  // !USE_SIMULATOR
 #endif  // V8_HOST_ARCH_PPC || V8_HOST_ARCH_PPC64
