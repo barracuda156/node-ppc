@@ -2262,6 +2262,10 @@ void TurboAssembler::CallCFunctionHelper(Register function,
     LoadP(ToRegister(ABI_TOC_REGISTER), MemOperand(function, kPointerSize));
     LoadP(ip, MemOperand(function, 0));
     dest = ip;
+  } else if (PPC_G4_PLUS) {
+    // TODO: is this correct for Darwin?
+    LoadP(ip, MemOperand(function, 0));
+    dest = ip;
   } else if (ABI_CALL_VIA_IP) {
     Move(ip, function);
     dest = ip;
@@ -3269,6 +3273,10 @@ void TurboAssembler::StoreReturnAddressAndCall(Register target) {
     // AIX/PPC64BE Linux uses a function descriptor. When calling C code be
     // aware of this descriptor and pick up values from it
     LoadP(ToRegister(ABI_TOC_REGISTER), MemOperand(target, kPointerSize));
+    LoadP(ip, MemOperand(target, 0));
+    dest = ip;
+  } else if (PPC_G4_PLUS) {
+    // TODO: is this correct for Darwin?
     LoadP(ip, MemOperand(target, 0));
     dest = ip;
   } else if (ABI_CALL_VIA_IP && dest != ip) {

@@ -8,11 +8,20 @@
 
 #include "src/codegen/cpu-features.h"
 
+#ifdef __APPLE__
+#include <mach/mach.h>
+#endif
+
 namespace v8 {
 namespace internal {
 
 void CpuFeatures::FlushICache(void* buffer, size_t size) {
 #if !defined(USE_SIMULATOR)
+
+  #ifdef __APPLE__ // Alternatively, assembler below can be used.
+    sys_icache_invalidate(const_cast<void *>(buffer), size);
+  #else
+
   if (CpuFeatures::IsSupported(ICACHE_SNOOP)) {
     __asm__ __volatile__(
         "sync \n"
@@ -54,5 +63,4 @@ void CpuFeatures::FlushICache(void* buffer, size_t size) {
 }  // namespace internal
 }  // namespace v8
 
-#undef INSTR_AND_DATA_CACHE_COHERENCY
 #endif  // V8_TARGET_ARCH_PPC || V8_TARGET_ARCH_PPC64

@@ -2993,10 +2993,17 @@ class DoubleRegisters {
   static const char* names_[kNumDoubleRegisters];
 };
 
+#ifdef __APPLE__
 static constexpr int kR0DwarfCode = 0;
-static constexpr int kFpDwarfCode = 31;  // frame-pointer
-static constexpr int kLrDwarfCode = 65;  // return-address(lr)
-static constexpr int kSpDwarfCode = 1;   // stack-pointer (sp)
+static constexpr int kFpDwarfCode = 30;  // Possibly: https://opensource.apple.com/source/gdb/gdb-292/src/gdb/macosx/ppc-macosx-frameinfo.c.auto.html
+static constexpr int kLrDwarfCode = 65;  // Seems correct: https://opensource.apple.com/source/Libc/Libc-594.9.4/ppc/sys/_sigtramp.s.auto.html
+static constexpr int kSpDwarfCode = 1;   // stack pointer (sp)
+#else
+static constexpr int kR0DwarfCode = 0;
+static constexpr int kFpDwarfCode = 31;  // frame pointer
+static constexpr int kLrDwarfCode = 65;  // return address(lr)
+static constexpr int kSpDwarfCode = 1;   // stack pointer (sp)
+#endif
 }  // namespace internal
 }  // namespace v8
 

@@ -26,25 +26,20 @@ enum CpuFeature {
   LZCNT,
   POPCNT,
   ATOM,
-  // ARM
-  // - Standard configurations. The baseline is ARMv6+VFPv2.
-  ARMv7,        // ARMv7-A + VFPv3-D32 + NEON
-  ARMv7_SUDIV,  // ARMv7-A + VFPv4-D32 + NEON + SUDIV
-  ARMv8,        // ARMv8-A (+ all of the above)
-  // MIPS, MIPS64
-  FPU,
-  FP64FPU,
-  MIPSr1,
-  MIPSr2,
-  MIPSr6,
-  MIPS_SIMD,    // MSA instructions
+  // ARM – Standard configurations. The baseline is ARMv6+VFPv2.
+  ARMv7,          // ARMv7-A + VFPv3-D32 + NEON
+  ARMv7_SUDIV,    // ARMv7-A + VFPv4-D32 + NEON + SUDIV
+  ARMv8,          // ARMv8-A (+ all of the above)
   // PPC
   FPR_GPR_MOV,
+  FPU,
+  GENERAL,
+  ICACHE_SNOOP,   // ISA v. 2.02
+  IS64BIT,
+  ISELECT,        // ISA v. 2.03 (POWER5+ and some NXP cores)
   LWSYNC,
-  ICACHE_SNOOP,  // ISA v. 2.02
-  ISELECT,       // ISA v. 2.03 (POWER5+ and some NXP cores)
-  VSX,           // ISA v. 2.06
   MODULO,
+  PPC_G4_PLUS,    // Apple PPC
   PPC_5_PLUS,
   PPC_6_PLUS,
   PPC_7_PLUS,
@@ -52,13 +47,7 @@ enum CpuFeature {
   PPC_8_PLUS,
   PPC_9_PLUS,
   PPC_10_PLUS,
-  // S390
-  DISTINCT_OPS,
-  GENERAL_INSTR_EXT,
-  FLOATING_POINT_EXT,
-  VECTOR_FACILITY,
-  VECTOR_ENHANCE_FACILITY_1,
-  MISC_INSTR_EXT2,
+  VSX,            // ISA v. 2.06
 
   NUMBER_OF_CPU_FEATURES,
 

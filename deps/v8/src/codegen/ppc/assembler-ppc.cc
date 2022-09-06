@@ -62,15 +62,14 @@ void CpuFeatures::ProbeImpl(bool cross_compile) {
   // Only use statically determined features for cross compile (snapshot).
   if (cross_compile) return;
 
-// Detect whether frim instruction is supported (POWER5+)
-// For now we will just check for processors we know do not
-// support it
-#ifdef USE_SIMULATOR
-  // Simulator
-  supported_ |= (1u << PPC_10_PLUS);
-  supported_ |= (1u << ICACHE_SNOOP);
-  supported_ |= (1u << ISELECT);
-#else
+  // Detect instructions that are only supported on some processors.
+  // FPU – whether frim instruction is supported (POWER5+)
+  //       G4 and G5 processors do not support this.
+  // IS64BIT – whether the 64-bit instructions fctid, fctidz are supported.
+  //           G4 is 32-bit and so doesn’t support this.
+  // GENERAL – whether “General group” optional instructions are supported (fsqrt, fsqrts).
+  //           G4 doesn’t support this.
+#ifndef USE_SIMULATOR
   // Probe for additional features at runtime.
   base::CPU cpu;
   if (cpu.part() == base::CPU::PPC_POWER9 ||
@@ -130,17 +129,31 @@ void CpuFeatures::ProbeImpl(bool cross_compile) {
     dcache_line_size_ = cpu.dcache_line_size();
   }
 #elif V8_OS_AIX
-  // Assume support FP support and default cache line size
+  // Assuming not G4:
+  supported_ |= (1u << GENERAL);
+  supported_ |= (1u << IS64BIT);
+  // Assuming not G5: support FP support and default cache line size
   supported_ |= (1u << FPU);
 #elif V8_OS_MACOSX
-  // No special definition for Altivec
+  // Placeholder to allow Darwin-specific assembler:
+  if (cpu.part() == base::CPU::PPC_G4 || cpu.part() == base::CPU::PPC_G5)) {
+    supported_ |= (1u << PPC_G4_PLUS);
+  }
+  // Only ppc970 support these:
+  if (cpu.part() == base::CPU::PPC_G5) {
+    supported_ |= (1u << GENERAL);
+    supported_ |= (1u << ICACHE_SNOOP); // Is it supported on G5?
+    supported_ |= (1u << IS64BIT);
+  }
 #endif
 #else  // Simulator
   supported_ |= (1u << FPU);
   supported_ |= (1u << LWSYNC);
   supported_ |= (1u << ISELECT);
+  supported_ |= (1u << ICACHE_SNOOP);
   supported_ |= (1u << VSX);
   supported_ |= (1u << MODULO);
+  supported_ |= (1u << PPC_10_PLUS);
 #if V8_TARGET_ARCH_PPC64
   supported_ |= (1u << FPR_GPR_MOV);
 #endif
@@ -160,24 +173,38 @@ void CpuFeatures::PrintTarget() {
 }
 
 void CpuFeatures::PrintFeatures() {
+  printf("FPR_GPR_MOV=%d\n", CpuFeatures::IsSupported(FPR_GPR_MOV));
   printf("FPU=%d\n", CpuFeatures::IsSupported(FPU));
+  printf("GENERAL=%d\n", CpuFeatures::IsSupported(GENERAL));
+  printf("ICACHE_SNOOP=%d\n", CpuFeatures::IsSupported(ICACHE_SNOOP));
+  printf("IS64BIT=%d\n", CpuFeatures::IsSupported(IS64BIT));
+  printf("ISELECT=%d\n", CpuFeatures::IsSupported(ISELECT));
+  printf("LWSYNC=%d\n", CpuFeatures::IsSupported(LWSYNC));
+  printf("MODULO=%d\n", CpuFeatures::IsSupported(MODULO));
+  printf("PPC_G4_PLUS=%d\n", CpuFeatures::IsSupported(PPC_G4_PLUS));
   printf("PPC_5_PLUS=%d\n", CpuFeatures::IsSupported(PPC_5_PLUS));
   printf("PPC_6_PLUS=%d\n", CpuFeatures::IsSupported(PPC_6_PLUS));
   printf("PPC_7_PLUS=%d\n", CpuFeatures::IsSupported(PPC_7_PLUS));
+  printf("PPC_7_PLUS_NXP=%d\n", CpuFeatures::IsSupported(PPC_7_PLUS_NXP));
   printf("PPC_8_PLUS=%d\n", CpuFeatures::IsSupported(PPC_8_PLUS));
   printf("PPC_9_PLUS=%d\n", CpuFeatures::IsSupported(PPC_9_PLUS));
   printf("PPC_10_PLUS=%d\n", CpuFeatures::IsSupported(PPC_10_PLUS));
-  printf("ICACHE_SNOOP=%d\n", CpuFeatures::IsSupported(ICACHE_SNOOP));
-  printf("ISELECT=%d\n", CpuFeatures::IsSupported(ISELECT));
-  printf("PPC_7_PLUS_NXP=%d\n", CpuFeatures::IsSupported(PPC_7_PLUS_NXP));
+  printf("VSX=%d\n", CpuFeatures::IsSupported(VSX));
 }
 
 Register ToRegister(int num) {
   DCHECK(num >= 0 && num < kNumRegisters);
+#ifdef __APPLE__ // TODO: ip and fp may not be correct here:
+  const Register kRegisters[] = {r0,  sp,  r2,  r3,  r4,  r5,  r6,  r7,
+                                 r8,  r9,  r10, r11, ip,  r13, r14, r15,
+                                 r16, r17, r18, r19, r20, r21, r22, r23,
+                                 r24, r25, r26, r27, r28, r29, fp, r31};
+#else
   const Register kRegisters[] = {r0,  sp,  r2,  r3,  r4,  r5,  r6,  r7,
                                  r8,  r9,  r10, r11, ip,  r13, r14, r15,
                                  r16, r17, r18, r19, r20, r21, r22, r23,
                                  r24, r25, r26, r27, r28, r29, r30, fp};
+#endif
   return kRegisters[num];
 }
 
