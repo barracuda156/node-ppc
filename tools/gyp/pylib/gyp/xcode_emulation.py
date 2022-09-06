@@ -120,7 +120,13 @@ def GetXcodeArchsDefault():
   if XCODE_ARCHS_DEFAULT_CACHE:
     return XCODE_ARCHS_DEFAULT_CACHE
   xcode_version, _ = XcodeVersion()
-  if xcode_version < '0500':
+  if xcode_version < '0400':
+    XCODE_ARCHS_DEFAULT_CACHE = XcodeArchsDefault(
+        '$(ARCHS_STANDARD)',
+        XcodeArchsVariableMapping(['ppc']),
+        XcodeArchsVariableMapping(['ppc64']),
+        XcodeArchsVariableMapping(['i386']))
+  elif xcode_version < '0500':
     XCODE_ARCHS_DEFAULT_CACHE = XcodeArchsDefault(
         '$(ARCHS_STANDARD)',
         XcodeArchsVariableMapping(['i386']),
