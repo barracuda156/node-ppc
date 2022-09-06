@@ -703,6 +703,73 @@ void TurboAssembler::CanonicalizeNaN(const DoubleRegister dst,
   fsub(dst, src, kDoubleRegZero);
 }
 
+void TurboAssembler::TruncateApproximatedDouble(
+  DoubleRegister dst, DoubleRegister src,
+  unsigned int bits)  {
+  Register scratch = kScratchReg;
+
+  subi(sp, sp, Operand(kDoubleSize));
+  stfd(src, MemOperand(sp, 0));
+  lwz(scratch, MemOperand(sp, LO_WORD_OFFSET));
+  rlwinm(scratch, scratch, 0, 0, 31-bits);
+  stw(scratch, MemOperand(sp, LO_WORD_OFFSET));
+  lfd(dst, MemOperand(sp, 0));
+  addi(sp, sp, Operand(kDoubleSize));
+}
+
+void TurboAssembler::RsqrtNewtonStep(
+  DoubleRegister dst, DoubleRegister src,
+  	RCBit rc)  {
+  DoubleRegister Dscratch = d11;
+  DoubleRegister Dscratch2 = d12;
+  DoubleRegister Dscratch3 = kScratchDoubleReg;
+  Register scratch = kScratchReg;
+
+  /* fast 1/sqrt(x) estimated */
+  frsqrte(Dscratch3, src, rc);
+
+  /* Two Newton method iterations over result to improve accuracy
+     https://en.wikipedia.org/wiki/Fast_inverse_square_root
+     y_n+1 = y_n(1.5 – 0.5*x*y_n^2)
+  */
+  subi(sp, sp, Operand(2*kFloatSize));
+
+  lis(scratch, Operand(0x3f00));
+  stw(scratch, MemOperand(sp, 0));
+  lfs(Dscratch, MemOperand(sp, 0));
+  lis(scratch, Operand(0x3fc0));
+  stw(scratch, MemOperand(sp, kFloatSize));
+  lfs(Dscratch2, MemOperand(sp, kFloatSize));
+
+  fmul(Dscratch, Dscratch, src);
+  fmul(Dscratch, Dscratch, Dscratch3);
+  fmul(Dscratch, Dscratch, Dscratch3);
+
+  fsub(Dscratch2, Dscratch2, Dscratch);
+  fmul(Dscratch3, Dscratch3, Dscratch2);
+
+  lfs(Dscratch, MemOperand(sp, 0));
+
+  fmul(Dscratch, Dscratch, src);
+  fmul(Dscratch, Dscratch, Dscratch3);
+  fmul(Dscratch, Dscratch, Dscratch3);
+
+  lfs(Dscratch2, MemOperand(sp, kFloatSize));
+
+  fsub(Dscratch2, Dscratch2, Dscratch);
+  fmul(dst, Dscratch3, Dscratch2);
+
+/* Calculate 1/x */
+  lis(scratch, Operand(0x3f80));
+  stw(scratch, MemOperand(sp, 0));
+  lfs(Dscratch, MemOperand(sp, 0));
+  fdiv(dst, Dscratch, dst, rc);
+
+  addi(sp, sp, Operand(2*kFloatSize));
+
+  TruncateApproximatedDouble(dst, dst, 16);
+}
+
 void TurboAssembler::ConvertDoubleToInt32NoPPC64(
   DoubleRegister src,
   Register dest, Register dest_hi,
@@ -793,8 +860,7 @@ void TurboAssembler::ConvertIntToDouble(Register src, DoubleRegister dst) {
 #endif
 }
 
-void TurboAssembler::ConvertUnsignedIntToDouble(Register src,
-                                                DoubleRegister dst) {
+void TurboAssembler::ConvertUnsignedIntToDouble(Register src, DoubleRegister dst) {
 #ifdef V8_TARGET_ARCH_PPC64
   MovUnsignedIntToDouble(dst, src, r0);
   fcfid(dst, dst);
@@ -812,8 +878,7 @@ void TurboAssembler::ConvertIntToFloat(Register src, DoubleRegister dst) {
 #endif
 }
 
-void TurboAssembler::ConvertUnsignedIntToFloat(Register src,
-                                               DoubleRegister dst) {
+void TurboAssembler::ConvertUnsignedIntToFloat(Register src, DoubleRegister dst) {
 #ifdef V8_TARGET_ARCH_PPC64
   MovUnsignedIntToDouble(dst, src, r0);
   fcfids(dst, dst);
@@ -823,26 +888,22 @@ void TurboAssembler::ConvertUnsignedIntToFloat(Register src,
 }
 
 #if V8_TARGET_ARCH_PPC64
-void TurboAssembler::ConvertInt64ToDouble(Register src,
-                                          DoubleRegister double_dst) {
+void TurboAssembler::ConvertInt64ToDouble(Register src, DoubleRegister double_dst) {
   MovInt64ToDouble(double_dst, src);
   fcfid(double_dst, double_dst);
 }
 
-void TurboAssembler::ConvertUnsignedInt64ToFloat(Register src,
-                                                 DoubleRegister double_dst) {
+void TurboAssembler::ConvertUnsignedInt64ToFloat(Register src, DoubleRegister double_dst) {
   MovInt64ToDouble(double_dst, src);
   fcfidus(double_dst, double_dst);
 }
 
-void TurboAssembler::ConvertUnsignedInt64ToDouble(Register src,
-                                                  DoubleRegister double_dst) {
+void TurboAssembler::ConvertUnsignedInt64ToDouble(Register src, DoubleRegister double_dst) {
   MovInt64ToDouble(double_dst, src);
   fcfidu(double_dst, double_dst);
 }
 
-void TurboAssembler::ConvertInt64ToFloat(Register src,
-                                         DoubleRegister double_dst) {
+void TurboAssembler::ConvertInt64ToFloat(Register src, DoubleRegister double_dst) {
   MovInt64ToDouble(double_dst, src);
   fcfids(double_dst, double_dst);
 }

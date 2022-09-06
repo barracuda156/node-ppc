@@ -78,6 +78,8 @@ class V8_EXPORT_PRIVATE TurboAssembler : public TurboAssemblerBase {
                                 Register dest,
                                 Register dest_hi,
                                 FPRoundingMode rounding_mode = kRoundToZero);
+  void RsqrtNewtonStep(DoubleRegister dst, DoubleRegister src, RCBit rc);
+  void TruncateApproximatedDouble(DoubleRegister dst, DoubleRegister src, unsigned int bits);
   #endif
 
   // Converts the integer (untagged smi) in |src| to a double, storing

@@ -1676,10 +1676,7 @@ CodeGenerator::CodeGenResult CodeGenerator::AssembleArchInstruction(
 #ifdef V8_TARGET_ARCH_PPC64
       ASSEMBLE_FLOAT_UNOP_RC(fsqrt, MiscField::decode(instr->opcode()));
 #else
-    __ frsqrte(i.OutputDoubleRegister(), i.InputDoubleRegister(0),
-              i.OutputRCBit());
-    __ fmul(i.OutputDoubleRegister(), i.OutputDoubleRegister(),
-              i.InputDoubleRegister(0), i.OutputRCBit());
+    __ RsqrtNewtonStep(i.OutputDoubleRegister(), i.InputDoubleRegister(0), i.OutputRCBit());
     if (MiscField::decode(instr->opcode())) {
       __ frsp(i.OutputDoubleRegister(), i.OutputDoubleRegister());
     }
