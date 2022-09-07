@@ -4,8 +4,8 @@
     'asan%': 0,
     'werror': '',                     # Turn off -Werror in V8 build.
     'visibility%': 'hidden',          # V8's visibility setting
-    'target_arch%': 'ia32',           # set v8's target architecture
-    'host_arch%': 'ia32',             # set v8's host architecture
+    'target_arch%': 'ppc',            # set v8's target architecture
+    'host_arch%': 'ppc',              # set v8's host architecture
     'want_separate_host_toolset%': 0, # V8 should not build target and host
     'library%': 'static_library',     # allow override to 'shared_library' for DLL/.so builds
     'component%': 'static_library',   # NB. these names match with what V8 expects
@@ -69,7 +69,7 @@
     # https://github.com/nodejs/node/pull/22920/files#r222779926
     'v8_enable_fast_mksnapshot': 0,
 
-    'v8_win64_unwinding_info': 1,
+    'v8_win64_unwinding_info': 0,
 
     # TODO(refack): make v8-perfetto happen
     'v8_use_perfetto': 0,

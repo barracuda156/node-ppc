@@ -1,12 +1,12 @@
 {
   'target_defaults': {
     'conditions': [
-      ['OS!="win"', {
+      ['OS=="mac"', {
         'defines': [
           '_DARWIN_USE_64_BIT_INODE=1',
           '_LARGEFILE_SOURCE',
           '_FILE_OFFSET_BITS=64',
-          '_GNU_SOURCE'
+          '_DARWIN_C_SOURCE'
         ]
       }],
       [ 'OS=="aix"', {

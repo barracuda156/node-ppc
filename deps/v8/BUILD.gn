@@ -91,7 +91,7 @@ declare_args() {
   v8_enable_embedded_builtins = true
 
   # Enable the registration of unwinding info for Windows x64 and ARM64.
-  v8_win64_unwinding_info = true
+  v8_win64_unwinding_info = false
 
   # Enable code comments for builtins in the snapshot (impacts performance).
   v8_enable_snapshot_code_comments = false
@@ -145,7 +145,7 @@ declare_args() {
   v8_os_page_size = "0"
 
   # Similar to vfp but on MIPS.
-  v8_can_use_fpu_instructions = true
+  v8_can_use_fpu_instructions = false
 
   # Similar to the ARM hard float ABI but on MIPS.
   v8_use_mips_abi_hardfloat = true
@@ -160,8 +160,8 @@ declare_args() {
   v8_extra_library_files = [ "//test/cctest/test-extra.js" ]
 
   v8_enable_gdbjit =
-      ((v8_current_cpu == "x86" || v8_current_cpu == "x64") &&
-       (is_linux || is_mac)) || (v8_current_cpu == "ppc64" && is_linux)
+      ((v8_current_cpu == "x86" || v8_current_cpu == "x64" || v8_current_cpu == "ppc64") &&
+       (is_linux || is_mac))
 
   # Temporary flag to allow embedders to update their microtasks scopes
   # while rolling in a new version of V8.
