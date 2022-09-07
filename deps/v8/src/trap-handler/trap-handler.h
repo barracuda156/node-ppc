@@ -21,7 +21,7 @@ namespace trap_handler {
 #define V8_TRAP_HANDLER_SUPPORTED true
 #elif V8_TARGET_ARCH_X64 && V8_OS_WIN
 #define V8_TRAP_HANDLER_SUPPORTED true
-#elif V8_TARGET_ARCH_X64 && V8_OS_MACOSX
+#elif V8_OS_MACOSX
 #define V8_TRAP_HANDLER_SUPPORTED true
 #else
 #define V8_TRAP_HANDLER_SUPPORTED false

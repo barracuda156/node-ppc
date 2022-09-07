@@ -339,7 +339,7 @@ F FUNCTION_CAST(Address addr) {
 // and the function entrypoint.
 #if (V8_HOST_ARCH_PPC || V8_HOST_ARCH_PPC64) &&                    \
     (V8_OS_AIX || (V8_TARGET_ARCH_PPC64 && V8_TARGET_BIG_ENDIAN && \
-                   (!defined(_CALL_ELF) || _CALL_ELF == 1)))
+    !V8_OS_MACOSX && (!defined(_CALL_ELF) || _CALL_ELF == 1)))
 #define USES_FUNCTION_DESCRIPTORS 1
 #define FUNCTION_ENTRYPOINT_ADDRESS(f)       \
   (reinterpret_cast<v8::internal::Address*>( \
