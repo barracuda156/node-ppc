@@ -169,9 +169,9 @@ class DeferredRelocInfo {
 class Assembler : public AssemblerBase {
  public:
   // Create an assembler. Instructions and relocation information are emitted
-  // into a buffer, with the instructions starting from the beginning and the
-  // relocation information starting from the end of the buffer. See CodeDesc
-  // for a detailed comment on the layout (globals.h).
+  // into a buffer, with the instructions starting from the beginning
+  // and the relocation information starting from the end of the buffer.
+  // See CodeDesc for a detailed comment on the layout (globals.h).
   //
   // If the provided buffer is nullptr, the assembler allocates and grows its
   // own buffer. Otherwise it takes ownership of the provided buffer.
@@ -211,8 +211,8 @@ class Assembler : public AssemblerBase {
 
   void bind(Label* L);  // binds an unbound label L to the current code position
 
-  // Links a label at the current pc_offset().  If already bound, returns the
-  // bound position.  If already linked, returns the position of the prior link.
+  // Links a label at the current pc_offset(). If already bound, returns
+  // the bound position. If already linked, returns the position of the prior link.
   // Otherwise, returns the current pc_offset().
   int link(Label* L);
 
@@ -424,8 +424,7 @@ class Assembler : public AssemblerBase {
     xx3_form(instr_name, rt, ra, rb);                                \
   }
 
-  inline void xx3_form(Instr instr, DoubleRegister t, DoubleRegister a,
-                       DoubleRegister b) {
+  inline void xx3_form(Instr instr, DoubleRegister t, DoubleRegister a, DoubleRegister b) {
     int AX = ((a.code() & 0x20) >> 5) & 0x1;
     int BX = ((b.code() & 0x20) >> 5) & 0x1;
     int TX = ((t.code() & 0x20) >> 5) & 0x1;
@@ -759,34 +758,24 @@ class Assembler : public AssemblerBase {
   void rldimi(Register dst, Register src, int sh, int mb, RCBit r = LeaveRC);
   void sldi(Register dst, Register src, const Operand& val, RCBit rc = LeaveRC);
   void srdi(Register dst, Register src, const Operand& val, RCBit rc = LeaveRC);
-  void clrrdi(Register dst, Register src, const Operand& val,
-              RCBit rc = LeaveRC);
-  void clrldi(Register dst, Register src, const Operand& val,
-              RCBit rc = LeaveRC);
+  void clrrdi(Register dst, Register src, const Operand& val, RCBit rc = LeaveRC);
+  void clrldi(Register dst, Register src, const Operand& val, RCBit rc = LeaveRC);
   void sradi(Register ra, Register rs, int sh, RCBit r = LeaveRC);
   void rotld(Register ra, Register rs, Register rb, RCBit r = LeaveRC);
   void rotldi(Register ra, Register rs, int sh, RCBit r = LeaveRC);
   void rotrdi(Register ra, Register rs, int sh, RCBit r = LeaveRC);
-  void mulld(Register dst, Register src1, Register src2, OEBit o = LeaveOE,
-             RCBit r = LeaveRC);
-  void divd(Register dst, Register src1, Register src2, OEBit o = LeaveOE,
-            RCBit r = LeaveRC);
-  void divdu(Register dst, Register src1, Register src2, OEBit o = LeaveOE,
-             RCBit r = LeaveRC);
+  void mulld(Register dst, Register src1, Register src2, OEBit o = LeaveOE, RCBit r = LeaveRC);
+  void divd(Register dst, Register src1, Register src2, OEBit o = LeaveOE, RCBit r = LeaveRC);
+  void divdu(Register dst, Register src1, Register src2, OEBit o = LeaveOE, RCBit r = LeaveRC);
 #endif
 
-  void rlwinm(Register ra, Register rs, int sh, int mb, int me,
-              RCBit rc = LeaveRC);
-  void rlwimi(Register ra, Register rs, int sh, int mb, int me,
-              RCBit rc = LeaveRC);
-  void rlwnm(Register ra, Register rs, Register rb, int mb, int me,
-             RCBit rc = LeaveRC);
+  void rlwinm(Register ra, Register rs, int sh, int mb, int me, RCBit rc = LeaveRC);
+  void rlwimi(Register ra, Register rs, int sh, int mb, int me, RCBit rc = LeaveRC);
+  void rlwnm(Register ra, Register rs, Register rb, int mb, int me, RCBit rc = LeaveRC);
   void slwi(Register dst, Register src, const Operand& val, RCBit rc = LeaveRC);
   void srwi(Register dst, Register src, const Operand& val, RCBit rc = LeaveRC);
-  void clrrwi(Register dst, Register src, const Operand& val,
-              RCBit rc = LeaveRC);
-  void clrlwi(Register dst, Register src, const Operand& val,
-              RCBit rc = LeaveRC);
+  void clrrwi(Register dst, Register src, const Operand& val, RCBit rc = LeaveRC);
+  void clrlwi(Register dst, Register src, const Operand& val, RCBit rc = LeaveRC);
   void rotlw(Register ra, Register rs, Register rb, RCBit r = LeaveRC);
   void rotlwi(Register ra, Register rs, int sh, RCBit r = LeaveRC);
   void rotrwi(Register ra, Register rs, int sh, RCBit r = LeaveRC);
@@ -806,17 +795,16 @@ class Assembler : public AssemblerBase {
   void add_label_offset(Register dst, Register base, Label* label,
                         int delta = 0);
 
-  // Load the address of the label in a register and associate with an
-  // internal reference relocation.
+  // Load the address of the label in a register and associate
+  // with an internal reference relocation.
   void mov_label_addr(Register dst, Label* label);
 
-  // Emit the address of the label (i.e. a jump table entry) and associate with
-  // an internal reference relocation.
+  // Emit the address of the label (i.e. a jump table entry) and associate
+  // with an internal reference relocation.
   void emit_label_addr(Label* label);
 
   // Multiply instructions
-  void mul(Register dst, Register src1, Register src2, OEBit s = LeaveOE,
-           RCBit r = LeaveRC);
+  void mul(Register dst, Register src1, Register src2, OEBit s = LeaveOE, RCBit r = LeaveRC);
 
   // Miscellaneous arithmetic instructions
 
@@ -869,55 +857,35 @@ class Assembler : public AssemblerBase {
             const DoubleRegister frb, RCBit rc = LeaveRC);
   void fmul(const DoubleRegister frt, const DoubleRegister fra,
             const DoubleRegister frc, RCBit rc = LeaveRC);
-  void fcmpu(const DoubleRegister fra, const DoubleRegister frb,
-             CRegister cr = cr7);
-  void fmr(const DoubleRegister frt, const DoubleRegister frb,
-           RCBit rc = LeaveRC);
+  void fcmpu(const DoubleRegister fra, const DoubleRegister frb, CRegister cr = cr7);
+  void fmr(const DoubleRegister frt, const DoubleRegister frb, RCBit rc = LeaveRC);
   void fctiwz(const DoubleRegister frt, const DoubleRegister frb);
   void fctiw(const DoubleRegister frt, const DoubleRegister frb);
-  void frin(const DoubleRegister frt, const DoubleRegister frb,
-            RCBit rc = LeaveRC);
-  void friz(const DoubleRegister frt, const DoubleRegister frb,
-            RCBit rc = LeaveRC);
-  void frip(const DoubleRegister frt, const DoubleRegister frb,
-            RCBit rc = LeaveRC);
-  void frim(const DoubleRegister frt, const DoubleRegister frb,
-            RCBit rc = LeaveRC);
-  void frsp(const DoubleRegister frt, const DoubleRegister frb,
-            RCBit rc = LeaveRC);
-  void fcfid(const DoubleRegister frt, const DoubleRegister frb,
-             RCBit rc = LeaveRC);
-  void fcfidu(const DoubleRegister frt, const DoubleRegister frb,
-              RCBit rc = LeaveRC);
-  void fcfidus(const DoubleRegister frt, const DoubleRegister frb,
-               RCBit rc = LeaveRC);
-  void fcfids(const DoubleRegister frt, const DoubleRegister frb,
-              RCBit rc = LeaveRC);
-  void fctid(const DoubleRegister frt, const DoubleRegister frb,
-             RCBit rc = LeaveRC);
-  void fctidz(const DoubleRegister frt, const DoubleRegister frb,
-              RCBit rc = LeaveRC);
-  void fctidu(const DoubleRegister frt, const DoubleRegister frb,
-              RCBit rc = LeaveRC);
-  void fctiduz(const DoubleRegister frt, const DoubleRegister frb,
-               RCBit rc = LeaveRC);
+  void frin(const DoubleRegister frt, const DoubleRegister frb, RCBit rc = LeaveRC);
+  void friz(const DoubleRegister frt, const DoubleRegister frb, RCBit rc = LeaveRC);
+  void frip(const DoubleRegister frt, const DoubleRegister frb, RCBit rc = LeaveRC);
+  void frim(const DoubleRegister frt, const DoubleRegister frb, RCBit rc = LeaveRC);
+  void frsp(const DoubleRegister frt, const DoubleRegister frb, RCBit rc = LeaveRC);
+  void fcfid(const DoubleRegister frt, const DoubleRegister frb, RCBit rc = LeaveRC);
+  void fcfidu(const DoubleRegister frt, const DoubleRegister frb, RCBit rc = LeaveRC);
+  void fcfidus(const DoubleRegister frt, const DoubleRegister frb, RCBit rc = LeaveRC);
+  void fcfids(const DoubleRegister frt, const DoubleRegister frb, RCBit rc = LeaveRC);
+  void fctid(const DoubleRegister frt, const DoubleRegister frb, RCBit rc = LeaveRC);
+  void fctidz(const DoubleRegister frt, const DoubleRegister frb, RCBit rc = LeaveRC);
+  void fctidu(const DoubleRegister frt, const DoubleRegister frb, RCBit rc = LeaveRC);
+  void fctiduz(const DoubleRegister frt, const DoubleRegister frb, RCBit rc = LeaveRC);
   void fsel(const DoubleRegister frt, const DoubleRegister fra,
             const DoubleRegister frc, const DoubleRegister frb,
             RCBit rc = LeaveRC);
-  void fneg(const DoubleRegister frt, const DoubleRegister frb,
-            RCBit rc = LeaveRC);
+  void fneg(const DoubleRegister frt, const DoubleRegister frb, RCBit rc = LeaveRC);
   void mtfsb0(FPSCRBit bit, RCBit rc = LeaveRC);
   void mtfsb1(FPSCRBit bit, RCBit rc = LeaveRC);
   void mtfsfi(int bf, int immediate, RCBit rc = LeaveRC);
   void mffs(const DoubleRegister frt, RCBit rc = LeaveRC);
-  void mtfsf(const DoubleRegister frb, bool L = 1, int FLM = 0, bool W = 0,
-             RCBit rc = LeaveRC);
-  void fsqrt(const DoubleRegister frt, const DoubleRegister frb,
-             RCBit rc = LeaveRC);
-  void frsqrte(const DoubleRegister frt, const DoubleRegister frb,
-          RCBit rc);
-  void fabs(const DoubleRegister frt, const DoubleRegister frb,
-            RCBit rc = LeaveRC);
+  void mtfsf(const DoubleRegister frb, bool L = 1, int FLM = 0, bool W = 0, RCBit rc = LeaveRC);
+  void fsqrt(const DoubleRegister frt, const DoubleRegister frb, RCBit rc = LeaveRC);
+  void frsqrte(const DoubleRegister frt, const DoubleRegister frb, RCBit rc);
+  void fabs(const DoubleRegister frt, const DoubleRegister frb, RCBit rc = LeaveRC);
   void fmadd(const DoubleRegister frt, const DoubleRegister fra,
              const DoubleRegister frc, const DoubleRegister frb,
              RCBit rc = LeaveRC);
@@ -1012,8 +980,8 @@ class Assembler : public AssemblerBase {
   void RecordDeoptReason(DeoptimizeReason reason, SourcePosition position,
                          int id);
 
-  // Writes a single byte or word of data in the code stream.  Used
-  // for inline tables, e.g., jump-tables.
+  // Writes a single byte or word of data in the code stream.
+  // Used for inline tables, e.g., jump-tables.
   void db(uint8_t data);
   void dd(uint32_t data);
   void dq(uint64_t data);
@@ -1059,8 +1027,8 @@ class Assembler : public AssemblerBase {
   static int GetCmpImmediateRawImmediate(Instr instr);
   static bool IsNop(Instr instr, int type = NON_MARKING_NOP);
 
-  // Postpone the generation of the trampoline pool for the specified number of
-  // instructions.
+  // Postpone the generation of the trampoline pool for the specified number
+  // of instructions.
   void BlockTrampolinePoolFor(int instructions);
   void CheckTrampolinePool();
 
@@ -1069,8 +1037,8 @@ class Assembler : public AssemblerBase {
   // one (constant pool small section) to five instructions (full
   // 64-bit sequence).
   //
-  // The value returned is only valid as long as no entries are added to the
-  // constant pool between this call and the actual instruction being emitted.
+  // The value returned is only valid as long as no entries are added
+  // to the constant pool between this call and the actual instruction being emitted.
   int instructions_required_for_mov(Register dst, const Operand& src) const;
 
   // Decide between using the constant pool vs. a mov immediate sequence.
@@ -1229,16 +1197,11 @@ class Assembler : public AssemblerBase {
   }
 
   // Instruction generation
-  void a_form(Instr instr, DoubleRegister frt, DoubleRegister fra,
-              DoubleRegister frb, RCBit r);
-  void d_form(Instr instr, Register rt, Register ra, const intptr_t val,
-              bool signed_disp);
-  void xo_form(Instr instr, Register rt, Register ra, Register rb, OEBit o,
-               RCBit r);
-  void md_form(Instr instr, Register ra, Register rs, int shift, int maskbit,
-               RCBit r);
-  void mds_form(Instr instr, Register ra, Register rs, Register rb, int maskbit,
-                RCBit r);
+  void a_form(Instr instr, DoubleRegister frt, DoubleRegister fra, DoubleRegister frb, RCBit r);
+  void d_form(Instr instr, Register rt, Register ra, const intptr_t val, bool signed_disp);
+  void xo_form(Instr instr, Register rt, Register ra, Register rb, OEBit o, RCBit r);
+  void md_form(Instr instr, Register ra, Register rs, int shift, int maskbit, RCBit r);
+  void mds_form(Instr instr, Register ra, Register rs, Register rb, int maskbit, RCBit r);
 
   // Labels
   void print(Label* L);
@@ -1311,8 +1274,7 @@ class EnsureSpace {
 
 class PatchingAssembler : public Assembler {
  public:
-  PatchingAssembler(const AssemblerOptions& options, byte* address,
-                    int instructions);
+  PatchingAssembler(const AssemblerOptions& options, byte* address, int instructions);
   ~PatchingAssembler();
 };
 

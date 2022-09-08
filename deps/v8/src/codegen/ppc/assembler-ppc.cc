@@ -194,11 +194,11 @@ void CpuFeatures::PrintFeatures() {
 
 Register ToRegister(int num) {
   DCHECK(num >= 0 && num < kNumRegisters);
-#ifdef __APPLE__ // TODO: ip and fp may not be correct here:
+#ifdef __APPLE__ // TODO: ip may not be correct here
   const Register kRegisters[] = {r0,  sp,  r2,  r3,  r4,  r5,  r6,  r7,
-                                 r8,  r9,  r10, r11, ip,  r13, r14, r15,
+                                 r8,  r9,  r10, ip,  r12, r13, r14, r15,
                                  r16, r17, r18, r19, r20, r21, r22, r23,
-                                 r24, r25, r26, r27, r28, r29, fp, r31};
+                                 r24, r25, r26, r27, r28, r29, fp,  r31};
 #else
   const Register kRegisters[] = {r0,  sp,  r2,  r3,  r4,  r5,  r6,  r7,
                                  r8,  r9,  r10, r11, ip,  r13, r14, r15,
@@ -391,8 +391,8 @@ Register Assembler::GetRB(Instr instr) {
   return Register::from_code(Instruction::RBValue(instr));
 }
 
-#if V8_TARGET_ARCH_PPC64
-// This code assumes a FIXED_SEQUENCE for 64bit loads (lis/ori)
+#if V8_TARGET_ARCH_PPC64 // TODO: check for Darwin ppc64
+// This code assumes a FIXED_SEQUENCE for 64-bit loads (lis/ori)
 bool Assembler::Is64BitLoadIntoR12(Instr instr1, Instr instr2, Instr instr3,
                                    Instr instr4, Instr instr5) {
   // Check the instructions are indeed a five part load (into r12)
@@ -406,11 +406,11 @@ bool Assembler::Is64BitLoadIntoR12(Instr instr1, Instr instr2, Instr instr3,
           ((instr5 >> 16) == 0x618C));
 }
 #else
-// This code assumes a FIXED_SEQUENCE for 32bit loads (lis/ori)
+// This code assumes a FIXED_SEQUENCE for 32-bit loads (lis/ori)
 bool Assembler::Is32BitLoadIntoR12(Instr instr1, Instr instr2) {
   // Check the instruction is indeed a two part load (into r12)
   // 3d802553       lis     r12, 9555
-  // 618c5000       ori   r12, r12, 20480
+  // 618c5000       ori     r12, r12, 20480
   return (((instr1 >> 16) == 0x3D80) && ((instr2 >> 16) == 0x618C));
 }
 #endif
@@ -741,8 +741,8 @@ int Assembler::link(Label* L) {
     } else {
       // was: target_pos = kEndOfChain;
       // However, using self to mark the first reference
-      // should avoid most instances of branch offset overflow.  See
-      // target_at() for where this is converted back to kEndOfChain.
+      // should avoid most instances of branch offset overflow.
+      // See target_at() for where this is converted back to kEndOfChain.
       position = pc_offset();
     }
     L->link_to(pc_offset());
@@ -761,10 +761,10 @@ void Assembler::bcctr(BOfield bo, int condition_bit, LKBit lk) {
   emit(EXT1 | bo | condition_bit * B16 | BCCTRX | lk);
 }
 
-// Pseudo op - branch to link register
+// Pseudo op: branch to link register
 void Assembler::blr() { bclr(BA, 0, LeaveLK); }
 
-// Pseudo op - branch to count register -- used for "jump"
+// Pseudo op: branch to count register – used for "jump"
 void Assembler::bctr() { bcctr(BA, 0, LeaveLK); }
 
 void Assembler::bctrl() { bcctr(BA, 0, SetLK); }
@@ -853,13 +853,11 @@ void Assembler::subi(Register dst, Register src, const Operand& imm) {
   addi(dst, src, Operand(-(imm.immediate())));
 }
 
-void Assembler::addc(Register dst, Register src1, Register src2, OEBit o,
-                     RCBit r) {
+void Assembler::addc(Register dst, Register src1, Register src2, OEBit o, RCBit r) {
   xo_form(EXT2 | ADDCX, dst, src1, src2, o, r);
 }
 
-void Assembler::adde(Register dst, Register src1, Register src2, OEBit o,
-                     RCBit r) {
+void Assembler::adde(Register dst, Register src1, Register src2, OEBit o, RCBit r) {
   xo_form(EXT2 | ADDEX, dst, src1, src2, o, r);
 }
 
@@ -868,18 +866,15 @@ void Assembler::addze(Register dst, Register src1, OEBit o, RCBit r) {
   emit(EXT2 | ADDZEX | dst.code() * B21 | src1.code() * B16 | o | r);
 }
 
-void Assembler::sub(Register dst, Register src1, Register src2, OEBit o,
-                    RCBit r) {
+void Assembler::sub(Register dst, Register src1, Register src2, OEBit o, RCBit r) {
   xo_form(EXT2 | SUBFX, dst, src2, src1, o, r);
 }
 
-void Assembler::subc(Register dst, Register src1, Register src2, OEBit o,
-                     RCBit r) {
+void Assembler::subc(Register dst, Register src1, Register src2, OEBit o, RCBit r) {
   xo_form(EXT2 | SUBFCX, dst, src2, src1, o, r);
 }
 
-void Assembler::sube(Register dst, Register src1, Register src2, OEBit o,
-                     RCBit r) {
+void Assembler::sube(Register dst, Register src1, Register src2, OEBit o, RCBit r) {
   xo_form(EXT2 | SUBFEX, dst, src2, src1, o, r);
 }
 
@@ -887,14 +882,12 @@ void Assembler::subfic(Register dst, Register src, const Operand& imm) {
   d_form(SUBFIC, dst, src, imm.immediate(), true);
 }
 
-void Assembler::add(Register dst, Register src1, Register src2, OEBit o,
-                    RCBit r) {
+void Assembler::add(Register dst, Register src1, Register src2, OEBit o, RCBit r) {
   xo_form(EXT2 | ADDX, dst, src1, src2, o, r);
 }
 
 // Multiply low word
-void Assembler::mullw(Register dst, Register src1, Register src2, OEBit o,
-                      RCBit r) {
+void Assembler::mullw(Register dst, Register src1, Register src2, OEBit o, RCBit r) {
   xo_form(EXT2 | MULLW, dst, src1, src2, o, r);
 }
 
@@ -909,14 +902,12 @@ void Assembler::mulhwu(Register dst, Register src1, Register src2, RCBit r) {
 }
 
 // Divide word
-void Assembler::divw(Register dst, Register src1, Register src2, OEBit o,
-                     RCBit r) {
+void Assembler::divw(Register dst, Register src1, Register src2, OEBit o, RCBit r) {
   xo_form(EXT2 | DIVW, dst, src1, src2, o, r);
 }
 
 // Divide word unsigned
-void Assembler::divwu(Register dst, Register src1, Register src2, OEBit o,
-                      RCBit r) {
+void Assembler::divwu(Register dst, Register src1, Register src2, OEBit o, RCBit r) {
   xo_form(EXT2 | DIVWU, dst, src1, src2, o, r);
 }
 
@@ -1084,7 +1075,7 @@ void Assembler::neg(Register rt, Register ra, OEBit o, RCBit r) {
 }
 
 #if V8_TARGET_ARCH_PPC64
-// 64bit specific instructions
+// 64 bit-specific instructions
 void Assembler::ld(Register rd, const MemOperand& src) {
   int offset = src.offset();
   DCHECK(src.ra_ != r0);
@@ -1143,14 +1134,12 @@ void Assembler::srdi(Register dst, Register src, const Operand& val, RCBit rc) {
   rldicl(dst, src, 64 - val.immediate(), val.immediate(), rc);
 }
 
-void Assembler::clrrdi(Register dst, Register src, const Operand& val,
-                       RCBit rc) {
+void Assembler::clrrdi(Register dst, Register src, const Operand& val, RCBit rc) {
   DCHECK((64 > val.immediate()) && (val.immediate() >= 0));
   rldicr(dst, src, 0, 63 - val.immediate(), rc);
 }
 
-void Assembler::clrldi(Register dst, Register src, const Operand& val,
-                       RCBit rc) {
+void Assembler::clrldi(Register dst, Register src, const Operand& val, RCBit rc) {
   DCHECK((64 > val.immediate()) && (val.immediate() >= 0));
   rldicl(dst, src, 0, val.immediate(), rc);
 }
@@ -1179,18 +1168,15 @@ void Assembler::rotrdi(Register ra, Register rs, int sh, RCBit r) {
   rldicl(ra, rs, 64 - sh, 0, r);
 }
 
-void Assembler::mulld(Register dst, Register src1, Register src2, OEBit o,
-                      RCBit r) {
+void Assembler::mulld(Register dst, Register src1, Register src2, OEBit o, RCBit r) {
   xo_form(EXT2 | MULLD, dst, src1, src2, o, r);
 }
 
-void Assembler::divd(Register dst, Register src1, Register src2, OEBit o,
-                     RCBit r) {
+void Assembler::divd(Register dst, Register src1, Register src2, OEBit o, RCBit r) {
   xo_form(EXT2 | DIVD, dst, src1, src2, o, r);
 }
 
-void Assembler::divdu(Register dst, Register src1, Register src2, OEBit o,
-                      RCBit r) {
+void Assembler::divdu(Register dst, Register src1, Register src2, OEBit o, RCBit r) {
   xo_form(EXT2 | DIVDU, dst, src1, src2, o, r);
 }
 #endif
@@ -1389,17 +1375,17 @@ void Assembler::mov_label_offset(Register dst, Label* label) {
     mov(dst, Operand(position + Code::kHeaderSize - kHeapObjectTag));
   } else {
     // Encode internal reference to unbound label. We use a dummy opcode
-    // such that it won't collide with any opcode that might appear in the
-    // label's chain.  Encode the destination register in the 2nd instruction.
+    // such that it won't collide with any opcode that might appear
+    // in the label's chain. Encode the destination register in the 2nd instruction.
     int link = position - pc_offset();
     DCHECK_EQ(0, link & 3);
     link >>= 2;
     DCHECK(is_int26(link));
 
     // When the label is bound, these instructions will be patched
-    // with a 2 instruction mov sequence that will load the
-    // destination register with the position of the label from the
-    // beginning of the code.
+    // with a 2 instruction mov sequence that will load
+    // the destination register with the position of the label
+    // from thebeginning of the code.
     //
     // target_at extracts the link and target_at_put patches the instructions.
     BlockTrampolinePoolScope block_trampoline_pool(this);
@@ -1417,8 +1403,8 @@ void Assembler::add_label_offset(Register dst, Register base, Label* label,
     bitwise_add32(dst, base, position);
   } else {
     // Encode internal reference to unbound label. We use a dummy opcode
-    // such that it won't collide with any opcode that might appear in the
-    // label's chain.  Encode the operands in the 2nd instruction.
+    // such that it won't collide with any opcode that might appear
+    // in the label's chain. Encode the operands in the 2nd instruction.
     int link = position - pc_offset();
     DCHECK_EQ(0, link & 3);
     link >>= 2;
@@ -1445,16 +1431,16 @@ void Assembler::mov_label_addr(Register dst, Label* label) {
     bitwise_mov(dst, position);
   } else {
     // Encode internal reference to unbound label. We use a dummy opcode
-    // such that it won't collide with any opcode that might appear in the
-    // label's chain.  Encode the destination register in the 2nd instruction.
+    // such that it won't collide with any opcode that might appear
+    // in the label's chain. Encode the destination register in the 2nd instruction.
     int link = position - pc_offset();
     DCHECK_EQ(0, link & 3);
     link >>= 2;
     DCHECK(is_int26(link));
 
     // When the label is bound, these instructions will be patched
-    // with a multi-instruction mov sequence that will load the
-    // destination register with the address of the label.
+    // with a multi-instruction mov sequence that will load
+    // the destination register with the address of the label.
     //
     // target_at extracts the link and target_at_put patches the instructions.
     BlockTrampolinePoolScope block_trampoline_pool(this);
@@ -1474,15 +1460,15 @@ void Assembler::emit_label_addr(Label* label) {
     dp(position);
   } else {
     // Encode internal reference to unbound label. We use a dummy opcode
-    // such that it won't collide with any opcode that might appear in the
-    // label's chain.
+    // such that it won't collide with any opcode that might appear
+    // in the label's chain.
     int link = position - pc_offset();
     DCHECK_EQ(0, link & 3);
     link >>= 2;
     DCHECK(is_int26(link));
 
     // When the label is bound, the instruction(s) will be patched
-    // as a jump table entry containing the label address.  target_at extracts
+    // as a jump table entry containing the label address. target_at extracts
     // the link and target_at_put patches the instruction(s).
     BlockTrampolinePoolScope block_trampoline_pool(this);
     emit(kUnboundJumpTableEntryOpcode | (link & kImm26Mask));
@@ -1681,8 +1667,7 @@ void Assembler::fdiv(const DoubleRegister frt, const DoubleRegister fra,
   a_form(EXT4 | FDIV, frt, fra, frb, rc);
 }
 
-void Assembler::fcmpu(const DoubleRegister fra, const DoubleRegister frb,
-                      CRegister cr) {
+void Assembler::fcmpu(const DoubleRegister fra, const DoubleRegister frb, CRegister cr) {
   DCHECK(cr.code() >= 0 && cr.code() <= 7);
   emit(EXT4 | FCMPU | cr.code() * B23 | fra.code() * B16 | frb.code() * B11);
 }
@@ -1700,8 +1685,7 @@ void Assembler::fctiw(const DoubleRegister frt, const DoubleRegister frb) {
   emit(EXT4 | FCTIW | frt.code() * B21 | frb.code() * B11);
 }
 
-void Assembler::frin(const DoubleRegister frt, const DoubleRegister frb,
-                     RCBit rc) {
+void Assembler::frin(const DoubleRegister frt, const DoubleRegister frb, RCBit rc) {
 #ifndef V8_TARGET_ARCH_PPC64
   assert(false);
 #else
@@ -1709,8 +1693,7 @@ void Assembler::frin(const DoubleRegister frt, const DoubleRegister frb,
 #endif
 }
 
-void Assembler::friz(const DoubleRegister frt, const DoubleRegister frb,
-                     RCBit rc) {
+void Assembler::friz(const DoubleRegister frt, const DoubleRegister frb, RCBit rc) {
 #ifndef V8_TARGET_ARCH_PPC64
   assert(false);
 #else
@@ -1718,8 +1701,7 @@ void Assembler::friz(const DoubleRegister frt, const DoubleRegister frb,
 #endif
 }
 
-void Assembler::frip(const DoubleRegister frt, const DoubleRegister frb,
-                     RCBit rc) {
+void Assembler::frip(const DoubleRegister frt, const DoubleRegister frb, RCBit rc) {
 #ifndef V8_TARGET_ARCH_PPC64
   assert(false);
 #else
@@ -1727,8 +1709,7 @@ void Assembler::frip(const DoubleRegister frt, const DoubleRegister frb,
 #endif
 }
 
-void Assembler::frim(const DoubleRegister frt, const DoubleRegister frb,
-                     RCBit rc) {
+void Assembler::frim(const DoubleRegister frt, const DoubleRegister frb, RCBit rc) {
 #ifndef V8_TARGET_ARCH_PPC64
   assert(false);
 #else
@@ -1736,13 +1717,11 @@ void Assembler::frim(const DoubleRegister frt, const DoubleRegister frb,
 #endif
 }
 
-void Assembler::frsp(const DoubleRegister frt, const DoubleRegister frb,
-                     RCBit rc) {
+void Assembler::frsp(const DoubleRegister frt, const DoubleRegister frb, RCBit rc) {
   emit(EXT4 | FRSP | frt.code() * B21 | frb.code() * B11 | rc);
 }
 
-void Assembler::fcfid(const DoubleRegister frt, const DoubleRegister frb,
-                      RCBit rc) {
+void Assembler::fcfid(const DoubleRegister frt, const DoubleRegister frb, RCBit rc) {
  #ifndef V8_TARGET_ARCH_PPC64
   assert(false);
 #else
@@ -1750,8 +1729,7 @@ void Assembler::fcfid(const DoubleRegister frt, const DoubleRegister frb,
 #endif
 }
 
-void Assembler::fcfidu(const DoubleRegister frt, const DoubleRegister frb,
-                       RCBit rc) {
+void Assembler::fcfidu(const DoubleRegister frt, const DoubleRegister frb, RCBit rc) {
 #ifndef V8_TARGET_ARCH_PPC64
   assert(false);
 #else
@@ -1759,8 +1737,7 @@ void Assembler::fcfidu(const DoubleRegister frt, const DoubleRegister frb,
 #endif
 }
 
-void Assembler::fcfidus(const DoubleRegister frt, const DoubleRegister frb,
-                        RCBit rc) {
+void Assembler::fcfidus(const DoubleRegister frt, const DoubleRegister frb, RCBit rc) {
 #ifndef V8_TARGET_ARCH_PPC64
   assert(false);
 #else
@@ -1768,8 +1745,7 @@ void Assembler::fcfidus(const DoubleRegister frt, const DoubleRegister frb,
 #endif
 }
 
-void Assembler::fcfids(const DoubleRegister frt, const DoubleRegister frb,
-                       RCBit rc) {
+void Assembler::fcfids(const DoubleRegister frt, const DoubleRegister frb, RCBit rc) {
 #ifndef V8_TARGET_ARCH_PPC64
   assert(false);
 #else
@@ -1777,8 +1753,7 @@ void Assembler::fcfids(const DoubleRegister frt, const DoubleRegister frb,
 #endif
 }
 
-void Assembler::fctid(const DoubleRegister frt, const DoubleRegister frb,
-                      RCBit rc) {
+void Assembler::fctid(const DoubleRegister frt, const DoubleRegister frb, RCBit rc) {
 #ifndef V8_TARGET_ARCH_PPC64
   assert(false);
 #else
@@ -1786,8 +1761,7 @@ void Assembler::fctid(const DoubleRegister frt, const DoubleRegister frb,
 #endif
 }
 
-void Assembler::fctidz(const DoubleRegister frt, const DoubleRegister frb,
-                       RCBit rc) {
+void Assembler::fctidz(const DoubleRegister frt, const DoubleRegister frb, RCBit rc) {
 #ifndef V8_TARGET_ARCH_PPC64
   assert(false);
 #else
@@ -1795,8 +1769,7 @@ void Assembler::fctidz(const DoubleRegister frt, const DoubleRegister frb,
 #endif
 }
 
-void Assembler::fctidu(const DoubleRegister frt, const DoubleRegister frb,
-                       RCBit rc) {
+void Assembler::fctidu(const DoubleRegister frt, const DoubleRegister frb, RCBit rc) {
 #ifndef V8_TARGET_ARCH_PPC64
   assert(false);
 #else
@@ -1804,8 +1777,7 @@ void Assembler::fctidu(const DoubleRegister frt, const DoubleRegister frb,
 #endif
 }
 
-void Assembler::fctiduz(const DoubleRegister frt, const DoubleRegister frb,
-                        RCBit rc) {
+void Assembler::fctiduz(const DoubleRegister frt, const DoubleRegister frb, RCBit rc) {
 #ifndef V8_TARGET_ARCH_PPC64
   assert(false);
 #else
@@ -1820,8 +1792,7 @@ void Assembler::fsel(const DoubleRegister frt, const DoubleRegister fra,
        frc.code() * B6 | rc);
 }
 
-void Assembler::fneg(const DoubleRegister frt, const DoubleRegister frb,
-                     RCBit rc) {
+void Assembler::fneg(const DoubleRegister frt, const DoubleRegister frb, RCBit rc) {
   emit(EXT4 | FNEG | frt.code() * B21 | frb.code() * B11 | rc);
 }
 
@@ -1845,13 +1816,11 @@ void Assembler::mffs(const DoubleRegister frt, RCBit rc) {
   emit(EXT4 | MFFS | frt.code() * B21 | rc);
 }
 
-void Assembler::mtfsf(const DoubleRegister frb, bool L, int FLM, bool W,
-                      RCBit rc) {
+void Assembler::mtfsf(const DoubleRegister frb, bool L, int FLM, bool W, RCBit rc) {
   emit(EXT4 | MTFSF | frb.code() * B11 | W * B16 | FLM * B17 | L * B25 | rc);
 }
 
-void Assembler::fsqrt(const DoubleRegister frt, const DoubleRegister frb,
-                      RCBit rc) {
+void Assembler::fsqrt(const DoubleRegister frt, const DoubleRegister frb, RCBit rc) {
 #ifndef USE_SIMULATOR
 #if V8_TARGET_ARCH_PPC
   assert(false);
@@ -1861,13 +1830,11 @@ void Assembler::fsqrt(const DoubleRegister frt, const DoubleRegister frb,
 #endif
 }
 
-void Assembler::frsqrte(const DoubleRegister frt, const DoubleRegister frb,
-                      RCBit rc) {
+void Assembler::frsqrte(const DoubleRegister frt, const DoubleRegister frb, RCBit rc) {
   emit(EXT4 | FRSQRTE | frt.code() * B21 | frb.code() * B11 | rc);
 }
 
-void Assembler::fabs(const DoubleRegister frt, const DoubleRegister frb,
-                     RCBit rc) {
+void Assembler::fabs(const DoubleRegister frt, const DoubleRegister frb, RCBit rc) {
   emit(EXT4 | FABS | frt.code() * B21 | frb.code() * B11 | rc);
 }
 
@@ -2024,8 +1991,8 @@ void Assembler::BlockTrampolinePoolFor(int instructions) {
 }
 
 void Assembler::CheckTrampolinePool() {
-  // Some small sequences of instructions must not be broken up by the
-  // insertion of a trampoline pool; such sequences are protected by setting
+  // Some small sequences of instructions must not be broken up
+  // by the insertion of a trampoline pool; such sequences are protected by setting
   // either trampoline_pool_blocked_nesting_ or no_trampoline_pool_before_,
   // which are both checked here. Also, recursive calls to CheckTrampolinePool
   // are blocked by trampoline_pool_blocked_nesting_.

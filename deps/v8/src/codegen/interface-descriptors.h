@@ -447,9 +447,8 @@ STATIC_ASSERT(kMaxTFSBuiltinRegisterParams <= kMaxBuiltinRegisterParams);
                                         arraysize(machine_types));             \
   }
 
-#define DEFINE_PARAMETER_TYPES(...)                                        \
-  DEFINE_RESULT_AND_PARAMETER_TYPES(MachineType::AnyTagged() /* result */, \
-                                    ##__VA_ARGS__)
+#define DEFINE_PARAMETER_TYPES(...)                     \
+  DEFINE_RESULT_AND_PARAMETER_TYPES(MachineType::AnyTagged() /* result */, ##__VA_ARGS__)
 
 #define DEFINE_JS_PARAMETERS(...)                       \
   static constexpr int kDescriptorFlags =               \

@@ -375,8 +375,8 @@ using Instr = uint32_t;
   V(xsabsdp, XSABSDP, 0xF0000564)                                            \
   /* VSX Scalar Convert Double-Precision to Single-Precision */              \
   V(xscvdpsp, XSCVDPSP, 0xF0000424)                                          \
-  /* VSX Scalar Convert Double-Precision to Single-Precision format Non- */  \
-  /* signalling */                                                           \
+  /* VSX Scalar Convert Double-Precision to Single-Precision format */       \
+  /* Non-signalling */                                                       \
   V(xscvdpspn, XSCVDPSPN, 0xF000042C)                                        \
   /* VSX Scalar Convert Double-Precision to Signed Fixed-Point Doubleword */ \
   /* Saturate */                                                             \
@@ -392,18 +392,18 @@ using Instr = uint32_t;
   V(xscvdpuxws, XSCVDPUXWS, 0xF0000120)                                      \
   /* VSX Scalar Convert Single-Precision to Double-Precision (p=1) */        \
   V(xscvspdp, XSCVSPDP, 0xF0000524)                                          \
-  /* Scalar Convert Single-Precision to Double-Precision format Non- */      \
-  /* signalling */                                                           \
+  /* Scalar Convert Single-Precision to Double-Precision format */           \
+  /* Non-signalling */                                                       \
   V(xscvspdpn, XSCVSPDPN, 0xF000052C)                                        \
   /* VSX Scalar Convert Signed Fixed-Point Doubleword to Double-Precision */ \
   V(xscvsxddp, XSCVSXDDP, 0xF00005E0)                                        \
   /* VSX Scalar Convert Signed Fixed-Point Doubleword to Single-Precision */ \
   V(xscvsxdsp, XSCVSXDSP, 0xF00004E0)                                        \
-  /* VSX Scalar Convert Unsigned Fixed-Point Doubleword to Double- */        \
-  /* Precision */                                                            \
+  /* VSX Scalar Convert Unsigned Fixed-Point Doubleword */                   \
+  /* to Double-Precision */                                                  \
   V(xscvuxddp, XSCVUXDDP, 0xF00005A0)                                        \
-  /* VSX Scalar Convert Unsigned Fixed-Point Doubleword to Single- */        \
-  /* Precision */                                                            \
+  /* VSX Scalar Convert Unsigned Fixed-Point Doubleword */                   \
+  /* to Single-Precision */                                                  \
   V(xscvuxdsp, XSCVUXDSP, 0xF00004A0)                                        \
   /* VSX Scalar Negative Absolute Value Double-Precision */                  \
   V(xsnabsdp, XSNABSDP, 0xF00005A4)                                          \
@@ -472,11 +472,11 @@ using Instr = uint32_t;
   V(xvcvsxwdp, XVCVSXWDP, 0xF00003E0)                                        \
   /* VSX Vector Convert Signed Fixed-Point Word to Single-Precision */       \
   V(xvcvsxwsp, XVCVSXWSP, 0xF00002E0)                                        \
-  /* VSX Vector Convert Unsigned Fixed-Point Doubleword to Double- */        \
-  /* Precision */                                                            \
+  /* VSX Vector Convert Unsigned Fixed-Point Doubleword */                   \
+  /* to Double-Precision */                                                  \
   V(xvcvuxddp, XVCVUXDDP, 0xF00007A0)                                        \
-  /* VSX Vector Convert Unsigned Fixed-Point Doubleword to Single- */        \
-  /* Precision */                                                            \
+  /* VSX Vector Convert Unsigned Fixed-Point Doubleword */                   \
+  /* to Single-Precision */                                                  \
   V(xvcvuxdsp, XVCVUXDSP, 0xF00006A0)                                        \
   /* VSX Vector Convert Unsigned Fixed-Point Word to Double-Precision */     \
   V(xvcvuxwdp, XVCVUXWDP, 0xF00003A0)                                        \
