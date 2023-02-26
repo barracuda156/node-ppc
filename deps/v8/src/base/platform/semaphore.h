@@ -10,10 +10,13 @@
 #if V8_OS_WIN
 #include "src/base/win32-headers.h"
 #endif
-
 #if V8_OS_DARWIN
+#include <AvailabilityMacros.h>
+#endif
+
+#if V8_OS_DARWIN && __MAC_OS_X_VERSION_MIN_REQUIRED > 1050 && !defined(__ppc__)
 #include <dispatch/dispatch.h>
-#elif V8_OS_POSIX
+#elif V8_OS_POSIX // Also fallback for Darwin
 #include <semaphore.h>
 #endif
 
@@ -55,7 +58,7 @@ class V8_BASE_EXPORT Semaphore {
   // the semaphore counter is decremented and true is returned.
   bool WaitFor(const TimeDelta& rel_time) V8_WARN_UNUSED_RESULT;
 
-#if V8_OS_DARWIN
+#if V8_OS_DARWIN && __MAC_OS_X_VERSION_MIN_REQUIRED > 1050 && !defined(__ppc__)
   using NativeHandle = dispatch_semaphore_t;
 #elif V8_OS_POSIX
   using NativeHandle = sem_t;
