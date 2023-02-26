@@ -763,6 +763,9 @@ class Code : public HeapObject {
   static constexpr int kHeaderPaddingSize = 8;
 #elif V8_TARGET_ARCH_MIPS
   static constexpr int kHeaderPaddingSize = 8;
+#elif V8_TARGET_ARCH_PPC
+  static constexpr int kHeaderPaddingSize =
+      V8_EMBEDDED_CONSTANT_POOL_BOOL ? 8 : 0;
 #elif V8_TARGET_ARCH_PPC64
   static constexpr int kHeaderPaddingSize =
       V8_EMBEDDED_CONSTANT_POOL_BOOL ? (COMPRESS_POINTERS_BOOL ? 4 : 48)
