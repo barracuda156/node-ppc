@@ -173,7 +173,9 @@ namespace ada::unicode {
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+#if !(defined __APPLE__ && defined __ppc__) // Bool is 4 bytes on Darwin ppc32, so size will be 1024.
     static_assert(sizeof(is_forbidden_host_code_point_table) == 256);
+#endif
 
   ada_really_inline constexpr bool is_forbidden_host_code_point(const char c) noexcept {
     return is_forbidden_host_code_point_table[uint8_t(c)];
@@ -210,8 +212,9 @@ constexpr static uint8_t is_forbidden_domain_code_point_table[] = {
     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
-
+#if !(defined __APPLE__ && defined __ppc__) // Bool is 4 bytes on Darwin ppc32, so size will be 1024.
     static_assert(sizeof(is_forbidden_domain_code_point_table) == 256);
+#endif
 
   ada_really_inline constexpr bool is_forbidden_domain_code_point(const char c) noexcept {
     return is_forbidden_domain_code_point_table[uint8_t(c)];
@@ -265,8 +268,9 @@ constexpr static uint8_t is_forbidden_domain_code_point_table[] = {
       0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
       0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
       0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-
+#if !(defined __APPLE__ && defined __ppc__) // Bool is 4 bytes on Darwin ppc32, so size will be 1024.
   static_assert(sizeof(is_alnum_plus_table) == 256);
+#endif
 
   ada_really_inline constexpr bool is_alnum_plus(const char c) noexcept {
     return is_alnum_plus_table[uint8_t(c)];
