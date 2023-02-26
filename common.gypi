@@ -97,7 +97,7 @@
         'obj_dir%': '<(PRODUCT_DIR)/obj.target',
         'v8_base': '<(PRODUCT_DIR)/obj.target/tools/v8_gypfiles/libv8_snapshot.a',
       }],
-      ['OS=="mac"', {
+      ['OS=="mac" and target_arch!="ppc" and target_arch!="ppc64"', {
         'clang%': 1,
         'obj_dir%': '<(PRODUCT_DIR)/obj.target',
         'v8_base': '<(PRODUCT_DIR)/libv8_snapshot.a',
@@ -527,6 +527,12 @@
           }],
           ['target_arch=="x64"', {
             'xcode_settings': {'ARCHS': ['x86_64']},
+          }],
+          ['target_arch=="ppc"', {
+            'xcode_settings': {'ARCHS': ['ppc']},
+          }],
+          ['target_arch=="ppc64"', {
+            'xcode_settings': {'ARCHS': ['ppc64']},
           }],
           ['target_arch=="arm64"', {
             'xcode_settings': {
