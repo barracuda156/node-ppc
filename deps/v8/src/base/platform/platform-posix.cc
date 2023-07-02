@@ -140,7 +140,7 @@ int GetFlagsForMemoryPermission(OS::MemoryPermission access,
     flags |= MAP_LAZY;
 #endif  // V8_OS_QNX
   }
-#if V8_OS_DARWIN
+#if V8_OS_DARWIN && !defined(__POWERPC__)
   // MAP_JIT is required to obtain writable and executable pages when the
   // hardened runtime/memory protection is enabled, which is optional (via code
   // signing) on Intel-based Macs but mandatory on Apple silicon ones. See also
@@ -148,7 +148,7 @@ int GetFlagsForMemoryPermission(OS::MemoryPermission access,
   if (access == OS::MemoryPermission::kNoAccessWillJitLater) {
     flags |= MAP_JIT;
   }
-#endif  // V8_OS_DARWIN
+#endif  // V8_OS_DARWIN && !defined(__POWERPC__)
   return flags;
 }
 
@@ -493,7 +493,7 @@ bool OS::SetPermissions(void* address, size_t size, MemoryPermission access) {
 
   // MacOS 11.2 on Apple Silicon refuses to switch permissions from
   // rwx to none. Just use madvise instead.
-#if defined(V8_OS_DARWIN)
+#if defined(V8_OS_DARWIN) && !defined(__POWERPC__)
   if (ret != 0 && access == OS::MemoryPermission::kNoAccess) {
     ret = madvise(address, size, MADV_FREE_REUSABLE);
     return ret == 0;
@@ -511,7 +511,7 @@ bool OS::SetPermissions(void* address, size_t size, MemoryPermission access) {
 // The cost is a syscall that effectively no-ops.
 // TODO(erikchen): Fix this to only call MADV_FREE_REUSE when necessary.
 // https://crbug.com/823915
-#if defined(V8_OS_DARWIN)
+#if defined(V8_OS_DARWIN) && !defined(__POWERPC__)
   if (access != OS::MemoryPermission::kNoAccess) {
     madvise(address, size, MADV_FREE_REUSE);
   }
@@ -533,7 +533,7 @@ bool OS::RecommitPages(void* address, size_t size, MemoryPermission access) {
   DCHECK_EQ(0, reinterpret_cast<uintptr_t>(address) % CommitPageSize());
   DCHECK_EQ(0, size % CommitPageSize());
 
-#if defined(V8_OS_DARWIN)
+#if defined(V8_OS_DARWIN) && !defined(__POWERPC__)
   while (madvise(address, size, MADV_FREE_REUSE) == -1 && errno == EAGAIN) {
   }
   return true;
@@ -548,7 +548,7 @@ bool OS::DiscardSystemPages(void* address, size_t size) {
   // (base/allocator/partition_allocator/page_allocator_internals_posix.h)
   DCHECK_EQ(0, reinterpret_cast<uintptr_t>(address) % CommitPageSize());
   DCHECK_EQ(0, size % CommitPageSize());
-#if defined(V8_OS_DARWIN)
+#if defined(V8_OS_DARWIN) && !defined(__POWERPC__)
   // On OSX, MADV_FREE_REUSABLE has comparable behavior to MADV_FREE, but also
   // marks the pages with the reusable bit, which allows both Activity Monitor
   // and memory-infra to correctly track the pages.
@@ -708,7 +708,7 @@ void OS::DebugBreak() {
 #elif V8_HOST_ARCH_LOONG64
   asm("break 0");
 #elif V8_HOST_ARCH_PPC || V8_HOST_ARCH_PPC64
-#if V8_OS_MACOSX
+#if defined(__APPLE__)
   __asm__("twge r2,r2");
 #else // AIX, ELF
   asm("twge 2,2");
