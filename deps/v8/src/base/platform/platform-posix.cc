@@ -335,6 +335,7 @@ void* OS::GetRandomMmapAddr() {
   raw_addr += uint64_t{0x400000000000};
 #elif V8_TARGET_BIG_ENDIAN
   // Big-endian Linux: 42 bits of virtual addressing.
+  // FIXME: is this correct for Darwin?
   raw_addr &= uint64_t{0x03FFFFFFF000};
 #else
   // Little-endian Linux: 46 bits of virtual addressing.
@@ -701,7 +702,11 @@ void OS::DebugBreak() {
 #elif V8_HOST_ARCH_LOONG64
   asm("break 0");
 #elif V8_HOST_ARCH_PPC || V8_HOST_ARCH_PPC64
+#if V8_OS_MACOSX
+  __asm__("twge r2,r2");
+#else // AIX, ELF
   asm("twge 2,2");
+#endif
 #elif V8_HOST_ARCH_IA32
   asm("int $3");
 #elif V8_HOST_ARCH_X64

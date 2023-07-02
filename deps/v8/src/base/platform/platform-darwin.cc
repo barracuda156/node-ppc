@@ -87,7 +87,7 @@ std::vector<OS::SharedLibraryAddress> OS::GetSharedLibraryAddresses() {
     const mach_header* header = _dyld_get_image_header(i);
     if (header == nullptr) continue;
     unsigned long size;
-#if V8_HOST_ARCH_I32
+#if V8_HOST_ARCH_I32 || V8_HOST_ARCH_PPC
     uint8_t* code_ptr = getsectiondata(header, SEG_TEXT, SECT_TEXT, &size);
 #else
     const mach_header_64* header64 =
