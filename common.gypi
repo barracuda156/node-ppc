@@ -267,7 +267,6 @@
     'defines': [
       'V8_DEPRECATION_WARNINGS',
       'V8_IMMINENT_DEPRECATION_WARNINGS',
-      '_GLIBCXX_USE_CXX11_ABI=1',
     ],
 
     # Forcibly disable -Werror.  We support a wide range of compilers, it's
@@ -495,7 +494,6 @@
         ],
       }],
       ['OS=="mac"', {
-        'defines': ['_DARWIN_USE_64_BIT_INODE=1'],
         'xcode_settings': {
           'ALWAYS_SEARCH_USER_PATHS': 'NO',
           'GCC_CW_ASM_SYNTAX': 'NO',                # No -fasm-blocks
@@ -552,13 +550,6 @@
               'OTHER_LDFLAGS!': [
                 '-Wl,-no_pie',
               ],
-            },
-          }],
-          ['clang==1', {
-            'xcode_settings': {
-              'GCC_VERSION': 'com.apple.compilers.llvm.clang.1_0',
-              'CLANG_CXX_LANGUAGE_STANDARD': 'gnu++17',  # -std=gnu++17
-              'CLANG_CXX_LIBRARY': 'libc++',
             },
           }],
         ],
