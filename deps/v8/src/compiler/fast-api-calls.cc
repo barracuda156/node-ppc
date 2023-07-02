@@ -191,7 +191,11 @@ Node* FastApiCallBuilder::WrapFastCall(const CallDescriptor* call_descriptor,
   // Disable JS execution
   Node* javascript_execution_assert = __ ExternalConstant(
       ExternalReference::javascript_execution_assert(isolate()));
+#if defined(V8_OS_MACOS) && defined(V8_TARGET_ARCH_PPC) && !defined(V8_TARGET_ARCH_PPC64)
+  static_assert(sizeof(bool) == 4, "Wrong assumption about boolean size.");
+#else
   static_assert(sizeof(bool) == 1, "Wrong assumption about boolean size.");
+#endif
 
   if (v8_flags.debug_code) {
     auto do_store = __ MakeLabel();

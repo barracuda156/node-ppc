@@ -6904,8 +6904,13 @@ Node* EffectControlLinearizer::LowerFastApiCall(Node* node) {
         switch (c_signature->ReturnInfo().GetType()) {
           case CTypeInfo::Type::kVoid:
             return __ UndefinedConstant();
+#if defined(V8_OS_DARWIN) && defined(__ppc__)
+          case CTypeInfo::Type::kBool:
+            static_assert(sizeof(bool) == 4, "unsupported bool size");
+#else
           case CTypeInfo::Type::kBool:
             static_assert(sizeof(bool) == 1, "unsupported bool size");
+#endif
             return ChangeBitToTagged(
                 __ Word32And(c_call_result, __ Int32Constant(0xFF)));
           case CTypeInfo::Type::kInt32:
