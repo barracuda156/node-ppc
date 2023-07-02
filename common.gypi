@@ -507,6 +507,7 @@
           'PREBINDING': 'NO',                       # No -Wl,-prebind
           'MACOSX_DEPLOYMENT_TARGET': '10.6',       # -mmacosx-version-min=10.6
           'USE_HEADERMAP': 'NO',
+          'defines': [ '_DARWIN_C_SOURCE' ],
           'OTHER_CFLAGS': [
             '-fno-strict-aliasing',
             '-fpermissive',

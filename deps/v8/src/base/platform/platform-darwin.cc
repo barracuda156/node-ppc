@@ -45,6 +45,10 @@
 #include <mach/mach_vm.h>
 #endif
 
+#ifndef VM_FLAGS_OVERWRITE
+#define VM_FLAGS_OVERWRITE 0x4000
+#endif
+
 namespace v8 {
 namespace base {
 
