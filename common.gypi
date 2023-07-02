@@ -97,8 +97,10 @@
         'obj_dir%': '<(PRODUCT_DIR)/obj.target',
         'v8_base': '<(PRODUCT_DIR)/obj.target/tools/v8_gypfiles/libv8_snapshot.a',
       }],
-      ['OS=="mac"', {
+      ['OS=="mac" and target_arch!="ppc" and target_arch!="ppc64"', {
         'clang%': 1,
+      }],
+      ['OS=="mac"', {
         'obj_dir%': '<(PRODUCT_DIR)/obj.target',
         'v8_base': '<(PRODUCT_DIR)/libv8_snapshot.a',
       }],
@@ -106,6 +108,9 @@
       ['target_arch in "arm ia32 mips mipsel ppc"', {
         'v8_enable_pointer_compression': 0,
         'v8_enable_31bit_smis_on_64bit_arch': 0,
+      }],
+      ['target_arch in "arm mips ppc"', {
+        'ldflags': [ '-latomic' ]
       }],
       ['target_arch in "ppc64 s390x"', {
         'v8_enable_backtrace': 1,
@@ -500,7 +505,7 @@
           'GCC_ENABLE_CPP_RTTI': 'NO',              # -fno-rtti
           'GCC_ENABLE_PASCAL_STRINGS': 'NO',        # No -mpascal-strings
           'PREBINDING': 'NO',                       # No -Wl,-prebind
-          'MACOSX_DEPLOYMENT_TARGET': '10.15',      # -mmacosx-version-min=10.15
+          'MACOSX_DEPLOYMENT_TARGET': '10.6',       # -mmacosx-version-min=10.15
           'USE_HEADERMAP': 'NO',
           'OTHER_CFLAGS': [
             '-fno-strict-aliasing',
@@ -527,6 +532,12 @@
           }],
           ['target_arch=="x64"', {
             'xcode_settings': {'ARCHS': ['x86_64']},
+          }],
+          ['target_arch=="ppc"', {
+            'xcode_settings': {'ARCHS': ['ppc']},
+          }],
+          ['target_arch=="ppc64"', {
+            'xcode_settings': {'ARCHS': ['ppc64']},
           }],
           ['target_arch=="arm64"', {
             'xcode_settings': {
