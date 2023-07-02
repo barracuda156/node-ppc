@@ -16,7 +16,7 @@
 #if MAC_OS_X_VERSION_MIN_REQUIRED > 1050 && !defined(__ppc__)
 #include <dispatch/dispatch.h>
 #else
-#include <mach/semaphore.h>
+#include <sys/semaphore.h>
 #endif
 #elif V8_OS_POSIX
 #include <semaphore.h>
@@ -64,7 +64,7 @@ class V8_BASE_EXPORT Semaphore {
 #if MAC_OS_X_VERSION_MIN_REQUIRED > 1050 && !defined(__ppc__)
   using NativeHandle = dispatch_semaphore_t;
 #else
-  using NativeHandle = semaphore_t;
+  using NativeHandle = sem_t;
 #endif
 #elif V8_OS_POSIX
   using NativeHandle = sem_t;

@@ -5,7 +5,12 @@
 #include "src/base/platform/semaphore.h"
 
 #if V8_OS_DARWIN
+#include <AvailabilityMacros.h>
+#if MAC_OS_X_VERSION_MIN_REQUIRED > 1050 && !defined(__ppc__)
 #include <dispatch/dispatch.h>
+#else
+#include <sys/semaphore.h>
+#endif
 #elif V8_OS_WIN
 #include <windows.h>
 #endif
@@ -45,19 +50,19 @@ bool Semaphore::WaitFor(const TimeDelta& rel_time) {
 
 Semaphore::Semaphore(int count) {
   DCHECK_GE(count, 0);
-  int result = semaphore_init(&native_handle_, 0, count);
+  int result = sem_init(&native_handle_, 0, count);
   DCHECK_EQ(0, result);
   USE(result);
 }
 
 Semaphore::~Semaphore() {
-  int result = semaphore_destroy(&native_handle_);
+  int result = sem_destroy(&native_handle_);
   DCHECK_EQ(0, result);
   USE(result);
 }
 
 void Semaphore::Signal() {
-  int result = semaphore_post(&native_handle_);
+  int result = sem_post(&native_handle_);
   if (result != 0) {
     FATAL("Error when signaling semaphore, errno: %d", errno);
   }
@@ -65,7 +70,7 @@ void Semaphore::Signal() {
 
 void Semaphore::Wait() {
   while (true) {
-    int result = semaphore_wait(&native_handle_);
+    int result = sem_wait(&native_handle_);
     if (result == 0) return;  // Semaphore was signalled.
     // Signal caused spurious wakeup.
     DCHECK_EQ(-1, result);
@@ -73,13 +78,14 @@ void Semaphore::Wait() {
   }
 }
 
+// This will not work, just a dead template for now:
 bool Semaphore::WaitFor(const TimeDelta& rel_time) {
   // Compute the time for end of timeout.
   const Time time = Time::NowFromSystemTime() + rel_time;
   const struct timespec ts = time.ToTimespec();
   // Wait for semaphore signalled or timeout.
   while (true) {
-    int result = semaphore_timedwait(&native_handle_, &ts);
+    int result = sem_wait(&native_handle_);
     if (result == 0) return true;  // Semaphore was signalled.
     if (result == -1 && errno == ETIMEDOUT) {
       // Timed out while waiting for semaphore.
