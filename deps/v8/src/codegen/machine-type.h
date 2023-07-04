@@ -243,7 +243,11 @@ class MachineType {
                        MachineSemantic::kInt64);
   }
   constexpr static MachineType Bool() {
+#if defined(__APPLE__) && defined(__ppc__) // Yes, this applies only to 32-bit ABI
+    return MachineType(MachineRepresentation::kWord32, MachineSemantic::kBool);
+#else
     return MachineType(MachineRepresentation::kBit, MachineSemantic::kBool);
+#endif
   }
   constexpr static MachineType None() {
     return MachineType(MachineRepresentation::kNone, MachineSemantic::kNone);
@@ -254,8 +258,10 @@ class MachineType {
     switch (rep) {
       case MachineRepresentation::kNone:
         return MachineType::None();
+#if !(defined(__APPLE__) && defined(__ppc__))
       case MachineRepresentation::kBit:
         return MachineType::Bool();
+#endif
       case MachineRepresentation::kWord8:
         return isSigned ? MachineType::Int8() : MachineType::Uint8();
       case MachineRepresentation::kWord16:
