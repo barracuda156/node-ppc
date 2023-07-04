@@ -35,10 +35,18 @@ namespace internal {
 #define MAYBE_ALLOCATABLE_CAGE_REGISTERS(V)  V(r27)
 #endif
 
+// In 32-bit Darwin ABI r13 is just a regular callee-saved register.
+#if defined(__APPLE__) && defined(__ppc__)
+#define MAYBE_ALLOCATABLE_R13(V)  V(r13)
+#else
+#define MAYBE_ALLOCATABLE_R13(V)
+#endif
+
 #define ALLOCATABLE_GENERAL_REGISTERS(V)  \
   ALWAYS_ALLOCATABLE_GENERAL_REGISTERS(V) \
   MAYBE_ALLOCATEABLE_CONSTANT_POOL_REGISTER(V) \
-  MAYBE_ALLOCATABLE_CAGE_REGISTERS(V)
+  MAYBE_ALLOCATABLE_CAGE_REGISTERS(V) \
+  MAYBE_ALLOCATABLE_R13(V)
 
 #define LOW_DOUBLE_REGISTERS(V)                           \
   V(d0)  V(d1)  V(d2)  V(d3)  V(d4)  V(d5)  V(d6)  V(d7)  \
@@ -93,13 +101,13 @@ namespace internal {
 const int kNumRequiredStackFrameSlots = 12;
 const int kStackFrameLRSlot = 2;
 const int kStackFrameExtraParamSlot = 12;
-#else  // AIX
+#else  // AIX & Darwin
 // [0] back chain
 // [1] condition register save area
 // [2] link register save area
 // [3] reserved for compiler
 // [4] reserved by binder
-// [5] TOC save area
+// [5] TOC save area in AIX; reserved in Darwin
 // [6] Parameter1 save area
 // ...
 // [13] Parameter8 save area
