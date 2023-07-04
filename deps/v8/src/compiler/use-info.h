@@ -211,7 +211,11 @@ class UseInfo {
     return UseInfo(MachineType::PointerRepresentation(), Truncation::Any());
   }
   static UseInfo Bool() {
+#if defined(__APPLE__) && defined(__ppc__)
+    return UseInfo(MachineRepresentation::kWord32, Truncation::Bool());
+#else
     return UseInfo(MachineRepresentation::kBit, Truncation::Bool());
+#endif
   }
   static UseInfo Float32() {
     return UseInfo(MachineRepresentation::kFloat32, Truncation::Any());
