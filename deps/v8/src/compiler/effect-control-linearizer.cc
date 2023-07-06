@@ -337,7 +337,10 @@ class EffectControlLinearizer {
                   std::function<void(void)> else_body);
   Node* SizeForString(Node* length, Node* is_two_byte);
   Node* AllocateSeqString(Node* size, Node* one_byte);
+#if !(defined(V8_OS_DARWIN) && defined(__ppc__))
+  // Bool is 4-byte in Darwin ppc 32-bit ABI.
   Node* AllocateSeqString(Node* size, bool one_byte);
+#endif
   Node* AllocateOneByteSlicedString();
   Node* AllocateTwoByteSlicedString();
   void CopyString(Node* src, Node* dst, Node* len, Node* is_one_byte);
@@ -6904,8 +6907,13 @@ Node* EffectControlLinearizer::LowerFastApiCall(Node* node) {
         switch (c_signature->ReturnInfo().GetType()) {
           case CTypeInfo::Type::kVoid:
             return __ UndefinedConstant();
+#if defined(V8_OS_DARWIN) && defined(__ppc__)
+          case CTypeInfo::Type::kBool:
+            static_assert(sizeof(bool) == 4, "unsupported bool size");
+#else
           case CTypeInfo::Type::kBool:
             static_assert(sizeof(bool) == 1, "unsupported bool size");
+#endif
             return ChangeBitToTagged(
                 __ Word32And(c_call_result, __ Int32Constant(0xFF)));
           case CTypeInfo::Type::kInt32:
