@@ -2176,6 +2176,8 @@ CodeGenerator::CodeGenResult CodeGenerator::AssembleArchInstruction(
       ASSEMBLE_STORE_INTEGER_RR(stwbrx);
       break;
     }
+#if V8_TARGET_ARCH_PPC64
+  // FIXME: rldicl, rldicr are 64-bit-only insns.
     case kPPC_ByteRev64: {
       Register input = i.InputRegister(0);
       Register output = i.OutputRegister();
@@ -2205,6 +2207,7 @@ CodeGenerator::CodeGenResult CodeGenerator::AssembleArchInstruction(
       ASSEMBLE_STORE_INTEGER_RR(stdbrx);
       break;
     }
+#endif
 // Simd Support.
 #define SIMD_BINOP_LIST(V) \
   V(F64x2Add)              \
