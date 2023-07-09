@@ -401,7 +401,7 @@ void JumpTableAssembler::SkipUntil(int offset) {
   DCHECK_EQ(offset, pc_offset());
 }
 
-#elif V8_TARGET_ARCH_PPC64
+#elif V8_TARGET_ARCH_PPC || V8_TARGET_ARCH_PPC64
 void JumpTableAssembler::EmitLazyCompileJumpSlot(uint32_t func_index,
                                                  Address lazy_compile_target) {
   int start = pc_offset();

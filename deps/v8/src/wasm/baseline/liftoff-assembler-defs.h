@@ -114,7 +114,7 @@ constexpr DoubleRegList kLiftoffAssemblerFpCacheRegs = {
 // For the "WasmLiftoffFrameSetup" builtin.
 constexpr Register kLiftoffFrameSetupFunctionReg = r7;
 
-#elif V8_TARGET_ARCH_PPC64
+#elif V8_TARGET_ARCH_PPC || V8_TARGET_ARCH_PPC64
 
 constexpr RegList kLiftoffAssemblerGpCacheRegs = {r3, r4,  r5,  r6,  r7, r8,
                                                   r9, r10, r11, r15, cp};
