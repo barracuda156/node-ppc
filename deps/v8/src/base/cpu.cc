@@ -867,6 +867,7 @@ CPU::CPU()
       part_ = kPPCPower6;
       break;
     case POWER_5:
+    default:
       part_ = kPPCPower5;
       break;
   }
@@ -876,6 +877,7 @@ CPU::CPU()
 struct host_basic_info host_basic_info;
   switch(host_basic_info.cpu_subtype) {
     case CPU_SUBTYPE_POWERPC_970:
+    default:
       part_ = kPPCG5;
       break;
     case CPU_SUBTYPE_POWERPC_7450:
