@@ -38,10 +38,17 @@ const int kNumJSCallerSaved = 9;
 int JSCallerSavedCode(int n);
 
 // Callee-saved registers preserved when switching from C to JavaScript
+#ifdef V8_OS_DARWIN
+const RegList kCalleeSaved = {r13, r14, r15, r16, r17, r18, r19, r20, r21, r22,
+                              r23, r24, r25, r26, r27, r28, r29, r30, fp};
+
+const int kNumCalleeSaved = 19;
+#else
 const RegList kCalleeSaved = {r14, r15, r16, r17, r18, r19, r20, r21, r22,
                               r23, r24, r25, r26, r27, r28, r29, r30, fp};
 
 const int kNumCalleeSaved = 18;
+#endif
 
 const DoubleRegList kCallerSavedDoubles = {d0, d1, d2, d3,  d4,  d5,  d6,
                                            d7, d8, d9, d10, d11, d12, d13};

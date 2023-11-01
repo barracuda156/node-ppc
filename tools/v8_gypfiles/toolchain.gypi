@@ -588,8 +588,7 @@
       }],
       ['(OS=="linux" or OS=="freebsd" or OS=="openbsd" or OS=="solaris" \
          or OS=="netbsd" or OS=="mac" or OS=="android" or OS=="qnx") and \
-        (v8_target_arch=="arm" or v8_target_arch=="ia32" or \
-         v8_target_arch=="ppc")', {
+        (v8_target_arch=="arm" or v8_target_arch=="ia32")', {
         'target_conditions': [
           ['_toolset=="host"', {
             'conditions': [
@@ -629,9 +628,51 @@
           }],
         ],
       }],
+      ['(OS=="linux" or OS=="freebsd" or OS=="openbsd" or OS=="solaris" \
+         or OS=="netbsd" or OS=="mac" or OS=="qnx") and \
+        (v8_target_arch=="ppc")', {
+        'target_conditions': [
+          ['_toolset=="host"', {
+            'conditions': [
+              ['host_cxx_is_biarch==1', {
+                'conditions': [
+                  ['host_arch=="s390x"', {
+                    'cflags': [ '-m31' ],
+                    'ldflags': [ '-m31' ]
+                  },{
+                   'cflags': [ '-m32' ],
+                   'ldflags': [ '-m32' ]
+                  }],
+                ],
+              }],
+            ],
+            'xcode_settings': {
+              'ARCHS': [ 'ppc' ],
+            },
+          }],
+          ['_toolset=="target"', {
+            'conditions': [
+              ['target_cxx_is_biarch==1', {
+                'conditions': [
+                  ['host_arch=="s390x"', {
+                    'cflags': [ '-m31' ],
+                    'ldflags': [ '-m31' ]
+                  },{
+                   'cflags': [ '-m32' ],
+                   'ldflags': [ '-m32' ],
+                  }],
+                ],
+              }],
+            ],
+            'xcode_settings': {
+              'ARCHS': [ 'ppc' ],
+            },
+          }],
+        ],
+      }],
       ['(OS=="linux" or OS=="android") and \
         (v8_target_arch=="x64" or v8_target_arch=="arm64" or \
-         v8_target_arch=="ppc64" or v8_target_arch=="s390x")', {
+         v8_target_arch=="s390x")', {
         'target_conditions': [
           ['_toolset=="host"', {
             'conditions': [
@@ -648,6 +689,30 @@
                  'ldflags': [ '-m64' ],
                }],
              ]
+           }],
+         ],
+      }],
+      ['(OS=="linux" or OS=="mac" or OS=="freebsd") and \
+        (v8_target_arch=="ppc64")', {
+        'target_conditions': [
+          ['_toolset=="host"', {
+            'conditions': [
+              ['host_cxx_is_biarch==1', {
+                'cflags': [ '-m64' ],
+                'ldflags': [ '-m64' ]
+              }],
+             ],
+           }],
+          ['_toolset=="target"', {
+             'conditions': [
+               ['target_cxx_is_biarch==1', {
+                 'cflags': [ '-m64' ],
+                 'ldflags': [ '-m64' ],
+               }],
+             ],
+            'xcode_settings': {
+              'ARCHS': [ 'ppc64' ],
+            },
            }],
          ],
       }],

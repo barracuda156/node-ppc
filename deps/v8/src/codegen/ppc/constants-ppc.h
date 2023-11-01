@@ -50,12 +50,15 @@
 #define ABI_CALL_VIA_IP 0
 #endif
 
+#ifndef V8_OS_DARWIN // Darwin does not use TOC at all.
 #if !(V8_HOST_ARCH_PPC || V8_HOST_ARCH_PPC64) || V8_OS_AIX || \
     V8_TARGET_ARCH_PPC64
 #define ABI_TOC_REGISTER 2
 #else
 #define ABI_TOC_REGISTER 13
 #endif
+#endif
+
 namespace v8 {
 namespace internal {
 

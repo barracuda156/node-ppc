@@ -1720,7 +1720,7 @@ inline FreezeCacheState::~FreezeCacheState() { assm_.UnfreezeCacheState(); }
 // Partially platform-independent implementations of the platform-dependent
 // part.
 
-#ifdef V8_TARGET_ARCH_32_BIT
+#if defined(V8_TARGET_ARCH_32_BIT) && !defined(V8_TARGET_ARCH_PPC)
 
 namespace liftoff {
 template <void (LiftoffAssembler::*op)(Register, Register, Register)>

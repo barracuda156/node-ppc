@@ -1011,7 +1011,8 @@ class V8_EXPORT_PRIVATE MacroAssembler : public MacroAssemblerBase {
   // Pointer compression Support
 
   void SmiToPtrArrayOffset(Register dst, Register src) {
-#if defined(V8_COMPRESS_POINTERS) || defined(V8_31BIT_SMIS_ON_64BIT_ARCH)
+#if defined(V8_COMPRESS_POINTERS) || defined(V8_31BIT_SMIS_ON_64BIT_ARCH) || \
+    (defined(V8_OS_DARWIN) && !V8_TARGET_ARCH_PPC64)
     static_assert(kSmiTag == 0 && kSmiShift < kSystemPointerSizeLog2);
     ShiftLeftU64(dst, src, Operand(kSystemPointerSizeLog2 - kSmiShift));
 #else
@@ -1708,7 +1709,8 @@ class V8_EXPORT_PRIVATE MacroAssembler : public MacroAssemblerBase {
     bne(not_smi_label, cr0);
   }
 
-#if !defined(V8_COMPRESS_POINTERS) && !defined(V8_31BIT_SMIS_ON_64BIT_ARCH)
+if !defined(V8_COMPRESS_POINTERS) && !defined(V8_31BIT_SMIS_ON_64BIT_ARCH) \
+  && !(defined(V8_OS_DARWIN) && V8_TARGET_ARCH_PPC)
   // Ensure it is permissible to read/write int value directly from
   // upper half of the smi.
   static_assert(kSmiTag == 0);

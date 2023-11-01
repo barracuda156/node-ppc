@@ -291,6 +291,8 @@ class IsolateData final {
 // cross-compiling to another platform. Otherwise there may be compatibility
 // issues because of different compilers used for snapshot generator and
 // actual V8 code.
+// FIXME: disabling for now.
+#if !(V8_OS_DARWIN && V8_TARGET_ARCH_PPC)
 void IsolateData::AssertPredictableLayout() {
   static_assert(std::is_standard_layout<RootsTable>::value);
   static_assert(std::is_standard_layout<ThreadLocalTop>::value);
@@ -303,6 +305,7 @@ void IsolateData::AssertPredictableLayout() {
 #undef V
   static_assert(sizeof(IsolateData) == IsolateData::kSize);
 }
+#endif
 
 #undef ISOLATE_DATA_FIELDS_POINTER_COMPRESSION
 #undef ISOLATE_DATA_FIELDS

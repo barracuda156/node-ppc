@@ -97,8 +97,10 @@
         'obj_dir%': '<(PRODUCT_DIR)/obj.target',
         'v8_base': '<(PRODUCT_DIR)/obj.target/tools/v8_gypfiles/libv8_snapshot.a',
       }],
-      ['OS=="mac"', {
+      ['OS=="mac" and target_arch!="ppc" and target_arch!="ppc64"', {
         'clang%': 1,
+      }],
+      ['OS=="mac"', {
         'obj_dir%': '<(PRODUCT_DIR)/obj.target',
         'v8_base': '<(PRODUCT_DIR)/libv8_snapshot.a',
       }],
@@ -106,6 +108,9 @@
       ['target_arch in "arm ia32 mips mipsel ppc"', {
         'v8_enable_pointer_compression': 0,
         'v8_enable_31bit_smis_on_64bit_arch': 0,
+      }],
+      ['target_arch in "arm mips ppc"', {
+        'ldflags': [ '-latomic' ]
       }],
       ['target_arch in "ppc64 s390x"', {
         'v8_enable_backtrace': 1,
@@ -528,10 +533,18 @@
           'GCC_ENABLE_CPP_RTTI': 'NO',              # -fno-rtti
           'GCC_ENABLE_PASCAL_STRINGS': 'NO',        # No -mpascal-strings
           'PREBINDING': 'NO',                       # No -Wl,-prebind
-          'MACOSX_DEPLOYMENT_TARGET': '11.0',       # -mmacosx-version-min=11.0
+          'MACOSX_DEPLOYMENT_TARGET': '@DEPLOYMENT_TARGET@', # -mmacosx-version-min=@DEPLOYMENT_TARGET@
           'USE_HEADERMAP': 'NO',
+          'defines': [ '_DARWIN_C_SOURCE' ],
           'OTHER_CFLAGS': [
             '-fno-strict-aliasing',
+            '-fpermissive',
+            '-std=gnu++17',
+            '-isystem@PREFIX@/include/LegacySupport',
+          ],
+          'OTHER_LDFLAGS': [
+            '-L@PREFIX@/lib',
+            '-lMacportsLegacysupport',
           ],
           'WARNING_CFLAGS': [
             '-Wall',
@@ -556,19 +569,18 @@
           ['target_arch=="x64"', {
             'xcode_settings': {'ARCHS': ['x86_64']},
           }],
+          ['target_arch=="ppc"', {
+            'xcode_settings': {'ARCHS': ['ppc']},
+          }],
+          ['target_arch=="ppc64"', {
+            'xcode_settings': {'ARCHS': ['ppc64']},
+          }],
           ['target_arch=="arm64"', {
             'xcode_settings': {
               'ARCHS': ['arm64'],
               'OTHER_LDFLAGS!': [
                 '-Wl,-no_pie',
               ],
-            },
-          }],
-          ['clang==1', {
-            'xcode_settings': {
-              'GCC_VERSION': 'com.apple.compilers.llvm.clang.1_0',
-              'CLANG_CXX_LANGUAGE_STANDARD': 'gnu++17',  # -std=gnu++17
-              'CLANG_CXX_LIBRARY': 'libc++',
             },
           }],
         ],

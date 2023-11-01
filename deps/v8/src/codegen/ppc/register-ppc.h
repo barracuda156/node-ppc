@@ -35,10 +35,18 @@ namespace internal {
 #define MAYBE_ALLOCATABLE_CAGE_REGISTERS(V)  V(r27)
 #endif
 
+// In 32-bit Darwin ABI r13 is just a regular callee-saved register.
+#if V8_OS_DARWIN && V8_TARGET_ARCH_PPC
+#define MAYBE_ALLOCATABLE_R13(V)  V(r13)
+#else
+#define MAYBE_ALLOCATABLE_R13(V)
+#endif
+
 #define ALLOCATABLE_GENERAL_REGISTERS(V)  \
   ALWAYS_ALLOCATABLE_GENERAL_REGISTERS(V) \
   MAYBE_ALLOCATEABLE_CONSTANT_POOL_REGISTER(V) \
-  MAYBE_ALLOCATABLE_CAGE_REGISTERS(V)
+  MAYBE_ALLOCATABLE_CAGE_REGISTERS(V) \
+  MAYBE_ALLOCATABLE_R13(V)
 
 #define LOW_DOUBLE_REGISTERS(V)                           \
   V(d0)  V(d1)  V(d2)  V(d3)  V(d4)  V(d5)  V(d6)  V(d7)  \

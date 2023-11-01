@@ -95,9 +95,15 @@ namespace {
 #define STACK_SHADOW_WORDS 14
 #endif
 #define PARAM_REGISTERS r3, r4, r5, r6, r7, r8, r9, r10
+#ifdef V8_OS_DARWIN
+#define CALLEE_SAVE_REGISTERS                                                \
+  r13, r14, r15, r16, r17, r18, r19, r20, r21, r22, r23, r24, r25, r26, r27, \
+      r28, r29, r30
+#else
 #define CALLEE_SAVE_REGISTERS                                                \
   r14, r15, r16, r17, r18, r19, r20, r21, r22, r23, r24, r25, r26, r27, r28, \
       r29, r30
+#endif
 
 #define CALLEE_SAVE_FP_REGISTERS                                             \
   d14, d15, d16, d17, d18, d19, d20, d21, d22, d23, d24, d25, d26, d27, d28, \

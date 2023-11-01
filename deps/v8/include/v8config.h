@@ -761,10 +761,10 @@ V8 shared library set USING_V8_SHARED.
 #elif defined(__loongarch_lp64)
 #define V8_HOST_ARCH_LOONG64 1
 #define V8_HOST_ARCH_64_BIT 1
-#elif defined(__PPC64__) || defined(_ARCH_PPC64)
+#elif defined(__PPC64__) || defined(_ARCH_PPC64) || defined(__ppc64__)
 #define V8_HOST_ARCH_PPC64 1
 #define V8_HOST_ARCH_64_BIT 1
-#elif defined(__PPC__) || defined(_ARCH_PPC)
+#elif defined(__PPC__) || defined(_ARCH_PPC) || defined(__ppc__)
 #define V8_HOST_ARCH_PPC 1
 #define V8_HOST_ARCH_32_BIT 1
 #elif defined(__s390__) || defined(__s390x__)
@@ -810,9 +810,9 @@ V8 shared library set USING_V8_SHARED.
 #define V8_TARGET_ARCH_MIPS64 1
 #elif defined(__loongarch_lp64)
 #define V8_TARGET_ARCH_LOONG64 1
-#elif defined(_ARCH_PPC64)
+#elif defined(_ARCH_PPC64) || defined(__ppc64__)
 #define V8_TARGET_ARCH_PPC64 1
-#elif defined(_ARCH_PPC)
+#elif defined(_ARCH_PPC) || defined(__ppc__)
 #define V8_TARGET_ARCH_PPC 1
 #elif defined(__s390__)
 #define V8_TARGET_ARCH_S390 1

@@ -37,6 +37,12 @@
 #endif
 #if V8_OS_DARWIN
 #include <sys/sysctl.h>  // sysctlbyname
+#if V8_HOST_ARCH_PPC || V8_HOST_ARCH_PPC64
+#include <mach/mach.h>
+#include <mach/mach_host.h>
+#include <mach/host_info.h>
+#include <mach/machine.h>
+#endif
 #endif
 #if V8_OS_POSIX
 #include <unistd.h>  // sysconf()
@@ -865,7 +871,24 @@ CPU::CPU()
       part_ = kPPCPower5;
       break;
   }
-#endif  // V8_OS_AIX
+
+#elif V8_OS_DARWIN
+
+struct host_basic_info host_basic_info;
+  switch(host_basic_info.cpu_subtype) {
+    case CPU_SUBTYPE_POWERPC_970:
+    default:
+      part_ = kPPCG5;
+      break;
+    case CPU_SUBTYPE_POWERPC_7450:
+      part_ = kPPCG4;
+      break;
+    case CPU_SUBTYPE_POWERPC_7400:
+      part_ = kPPCG4;
+      break;
+   }
+
+#endif  // V8_OS_DARWIN
 #endif  // !USE_SIMULATOR
 
 #elif V8_HOST_ARCH_RISCV64

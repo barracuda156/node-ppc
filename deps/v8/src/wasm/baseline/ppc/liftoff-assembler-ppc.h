@@ -1673,7 +1673,7 @@ void LiftoffAssembler::emit_cond_jump(Condition cond, Label* label,
       case kRefNull:
       case kRtt:
         DCHECK(cond == kEqual || cond == kNotEqual);
-#if defined(V8_COMPRESS_POINTERS)
+#if defined(V8_COMPRESS_POINTERS) || defined(V8_TARGET_ARCH_PPC)
         if (use_signed) {
           CmpS32(lhs, rhs);
         } else {
