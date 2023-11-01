@@ -5,7 +5,12 @@
 #include "src/base/platform/semaphore.h"
 
 #if V8_OS_DARWIN
+#include <AvailabilityMacros.h>
+#if MAC_OS_X_VERSION_MIN_REQUIRED > 1050 && !defined(__ppc__)
 #include <dispatch/dispatch.h>
+#else
+#include <sys/semaphore.h>
+#endif
 #elif V8_OS_WIN
 #include <windows.h>
 #endif
@@ -20,6 +25,7 @@ namespace v8 {
 namespace base {
 
 #if V8_OS_DARWIN
+#if MAC_OS_X_VERSION_MIN_REQUIRED > 1050 && !defined(__ppc__)
 
 Semaphore::Semaphore(int count) {
   native_handle_ = dispatch_semaphore_create(count);
@@ -41,7 +47,7 @@ bool Semaphore::WaitFor(const TimeDelta& rel_time) {
   return dispatch_semaphore_wait(native_handle_, timeout) == 0;
 }
 
-#elif V8_OS_POSIX
+#else
 
 Semaphore::Semaphore(int count) {
   DCHECK_GE(count, 0);
@@ -50,6 +56,58 @@ Semaphore::Semaphore(int count) {
   USE(result);
 }
 
+Semaphore::~Semaphore() {
+  int result = sem_destroy(&native_handle_);
+  DCHECK_EQ(0, result);
+  USE(result);
+}
+
+void Semaphore::Signal() {
+  int result = sem_post(&native_handle_);
+  if (result != 0) {
+    FATAL("Error when signaling semaphore, errno: %d", errno);
+  }
+}
+
+void Semaphore::Wait() {
+  while (true) {
+    int result = sem_wait(&native_handle_);
+    if (result == 0) return;  // Semaphore was signalled.
+    // Signal caused spurious wakeup.
+    DCHECK_EQ(-1, result);
+    DCHECK_EQ(EINTR, errno);
+  }
+}
+
+// This will not work, just a dead template for now:
+bool Semaphore::WaitFor(const TimeDelta& rel_time) {
+  // Compute the time for end of timeout.
+  const Time time = Time::NowFromSystemTime() + rel_time;
+  const struct timespec ts = time.ToTimespec();
+  // Wait for semaphore signalled or timeout.
+  while (true) {
+    int result = sem_wait(&native_handle_);
+    if (result == 0) return true;  // Semaphore was signalled.
+    if (result == -1 && errno == ETIMEDOUT) {
+      // Timed out while waiting for semaphore.
+      return false;
+    }
+    // Signal caused spurious wakeup.
+    DCHECK_EQ(-1, result);
+    DCHECK_EQ(EINTR, errno);
+  }
+}
+
+#endif
+
+#elif V8_OS_POSIX
+
+Semaphore::Semaphore(int count) {
+  DCHECK_GE(count, 0);
+  int result = sem_init(&native_handle_, 0, count);
+  DCHECK_EQ(0, result);
+  USE(result);
+}
 
 Semaphore::~Semaphore() {
   int result = sem_destroy(&native_handle_);

@@ -12,7 +12,12 @@
 #endif
 
 #if V8_OS_DARWIN
+#include <AvailabilityMacros.h>
+#if MAC_OS_X_VERSION_MIN_REQUIRED > 1050 && !defined(__ppc__)
 #include <dispatch/dispatch.h>
+#else
+#include <sys/semaphore.h>
+#endif
 #elif V8_OS_POSIX
 #include <semaphore.h>
 #endif
@@ -56,7 +61,11 @@ class V8_BASE_EXPORT Semaphore {
   bool WaitFor(const TimeDelta& rel_time) V8_WARN_UNUSED_RESULT;
 
 #if V8_OS_DARWIN
+#if MAC_OS_X_VERSION_MIN_REQUIRED > 1050 && !defined(__ppc__)
   using NativeHandle = dispatch_semaphore_t;
+#else
+  using NativeHandle = sem_t;
+#endif
 #elif V8_OS_POSIX
   using NativeHandle = sem_t;
 #elif V8_OS_WIN
