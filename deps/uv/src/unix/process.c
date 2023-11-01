@@ -36,6 +36,7 @@
 #include <poll.h>
 
 #if defined(__APPLE__)
+#include <AvailabilityMacros.h>
 # include <spawn.h>
 # include <paths.h>
 # include <sys/kauth.h>
@@ -608,9 +609,11 @@ static int uv__spawn_set_posix_spawn_file_actions(
       }
     }
 
+#if MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
     if (fd == use_fd)
         err = posix_spawn_file_actions_addinherit_np(actions, fd);
     else
+#endif
         err = posix_spawn_file_actions_adddup2(actions, use_fd, fd);
     assert(err != ENOSYS);
     if (err != 0)
