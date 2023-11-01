@@ -453,8 +453,6 @@
         '-Wendif-labels',
         '-W',
         '-Wno-unused-parameter',
-        '-Werror=undefined-inline',
-        '-Werror=extra-semi',
       ],
     },
 
