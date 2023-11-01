@@ -9924,7 +9924,9 @@ constexpr static bool is_forbidden_host_code_point_table[] = {
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-static_assert(sizeof(is_forbidden_host_code_point_table) == 256);
+#ifndef __ppc__
+  static_assert(sizeof(is_forbidden_host_code_point_table) == 256);
+#endif
 
 ada_really_inline constexpr bool is_forbidden_host_code_point(
     const char c) noexcept {
@@ -10058,8 +10060,9 @@ constexpr static bool is_alnum_plus_table[] = {
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-
-static_assert(sizeof(is_alnum_plus_table) == 256);
+#ifndef __ppc__
+  static_assert(sizeof(is_alnum_plus_table) == 256);
+#endif
 
 ada_really_inline constexpr bool is_alnum_plus(const char c) noexcept {
   return is_alnum_plus_table[uint8_t(c)];

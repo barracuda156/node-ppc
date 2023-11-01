@@ -7103,7 +7103,12 @@ Node* EffectControlLinearizer::LowerFastApiCall(Node* node) {
           case CTypeInfo::Type::kVoid:
             return __ UndefinedConstant();
           case CTypeInfo::Type::kBool:
+#if V8_OS_DARWIN && V8_TARGET_ARCH_PPC
+          case CTypeInfo::Type::kBool:
+            static_assert(sizeof(bool) == 4, "unsupported bool size");
+#else
             static_assert(sizeof(bool) == 1, "unsupported bool size");
+#endif
             return ChangeBitToTagged(
                 __ Word32And(c_call_result, __ Int32Constant(0xFF)));
           case CTypeInfo::Type::kInt32:
