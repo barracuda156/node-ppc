@@ -11,7 +11,7 @@
 
 #if !defined(V8_TARGET_ARCH_X64) && !defined(V8_TARGET_ARCH_ARM) &&     \
     !defined(V8_TARGET_ARCH_ARM64) && !defined(V8_TARGET_ARCH_S390X) && \
-    !defined(V8_TARGET_ARCH_PPC64)
+    !defined(V8_TARGET_ARCH_PPC) && !defined(V8_TARGET_ARCH_PPC64)
 
 // Placeholders for unsupported architectures.
 

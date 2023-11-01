@@ -90,10 +90,12 @@ class LinuxPerfJitLogger : public CodeEventLogger {
   static const uint32_t kElfMachIA32 = 3;
   static const uint32_t kElfMachX64 = 62;
   static const uint32_t kElfMachARM = 40;
+  static const uint32_t kElfMachMIPS = 8;
   static const uint32_t kElfMachMIPS64 = 8;
   static const uint32_t kElfMachLOONG64 = 258;
   static const uint32_t kElfMachARM64 = 183;
   static const uint32_t kElfMachS390x = 22;
+  static const uint32_t kElfMachPPC = 20;
   static const uint32_t kElfMachPPC64 = 21;
   static const uint32_t kElfMachRISCV = 243;
 
@@ -104,6 +106,8 @@ class LinuxPerfJitLogger : public CodeEventLogger {
     return kElfMachX64;
 #elif V8_TARGET_ARCH_ARM
     return kElfMachARM;
+#elif V8_TARGET_ARCH_MIPS
+    return kElfMachMIPS;
 #elif V8_TARGET_ARCH_MIPS64
     return kElfMachMIPS64;
 #elif V8_TARGET_ARCH_LOONG64
@@ -112,6 +116,8 @@ class LinuxPerfJitLogger : public CodeEventLogger {
     return kElfMachARM64;
 #elif V8_TARGET_ARCH_S390X
     return kElfMachS390x;
+#elif V8_TARGET_ARCH_PPC
+    return kElfMachPPC;
 #elif V8_TARGET_ARCH_PPC64
     return kElfMachPPC64;
 #elif V8_TARGET_ARCH_RISCV32 || V8_TARGET_ARCH_RISCV64

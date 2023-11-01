@@ -10,7 +10,11 @@ namespace internal {
 
 const int EhFrameConstants::kCodeAlignmentFactor = 4;
 // all PPC are 4 bytes instruction
+#ifdef V8_TARGET_ARCH_PPC64
 const int EhFrameConstants::kDataAlignmentFactor = -8;  // 64-bit always -8
+#else
+const int EhFrameConstants::kDataAlignmentFactor = -4;
+#endif
 
 void EhFrameWriter::WriteReturnAddressRegisterCode() {
   WriteULeb128(kLrDwarfCode);

@@ -122,7 +122,7 @@ void CompileJumpTableThunk(Address thunk, Address jump_target) {
   __ Tbnz(scratch, 0, &exit);
   __ Mov(scratch, Immediate(jump_target, RelocInfo::NO_INFO));
   __ Br(scratch);
-#elif V8_TARGET_ARCH_PPC64
+#elif V8_TARGET_ARCH_PPC || V8_TARGET_ARCH_PPC64
   __ mov(scratch, Operand(stop_bit_address, RelocInfo::NO_INFO));
   __ LoadU64(scratch, MemOperand(scratch));
   __ cmpi(scratch, Operand::Zero());

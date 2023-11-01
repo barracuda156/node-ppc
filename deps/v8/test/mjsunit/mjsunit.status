@@ -570,7 +570,7 @@
 
 ##############################################################################
 # 32-bit platforms
-['arch in (ia32, arm, riscv32)', {
+['arch in (ia32, arm, mips, mipsel, ppc)', {
   # Needs >2GB of available contiguous memory.
   'wasm/grow-huge-memory': [SKIP],
   'wasm/huge-memory': [SKIP],
@@ -584,7 +584,7 @@
 
   # Needs 64-bit number register support
   'compiler/fast-api-calls-64-bit-integer-values': [SKIP],
-}],  # 'arch in (ia32, arm, riscv32)'
+}],  # 'arch in (ia32, arm, mips, mipsel, ppc)'
 
 ##############################################################################
 ['arch == arm64', {
@@ -651,6 +651,13 @@
   # BUG(v8:7247).
   'regress/regress-779407': [PASS, SLOW, NO_VARIANTS],
 }],  # 'arch == arm64'
+
+##############################################################################
+['arch == ppc', {
+  # do not run 64-bit stress tests on 32-bit
+  'wasm/atomics64-stress': [SKIP],
+  'wasm/compare-exchange64-stress': [SKIP],
+}],  # 'arch == ppc'
 
 ##############################################################################
 ['arch == arm64 and simulator_run', {

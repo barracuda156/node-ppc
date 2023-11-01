@@ -78,7 +78,12 @@ namespace internal {
 // The following constants describe the stack frame linkage area as
 // defined by the ABI.  Note that kNumRequiredStackFrameSlots must
 // satisfy alignment requirements (rounding up if required).
-#if V8_TARGET_ARCH_PPC64 &&     \
+#if V8_TARGET_ARCH_PPC && !V8_OS_DARWIN
+// 32-bit System V ABI.
+const int kNumRequiredStackFrameSlots = 4;
+const int kStackFrameLRSlot = 1;
+const int kStackFrameExtraParamSlot = 2;
+#elif V8_TARGET_ARCH_PPC64 &&   \
     (V8_TARGET_LITTLE_ENDIAN || \
      (defined(_CALL_ELF) && _CALL_ELF == 2))  // ELFv2 ABI
 // [0] back chain
@@ -93,7 +98,7 @@ namespace internal {
 const int kNumRequiredStackFrameSlots = 12;
 const int kStackFrameLRSlot = 2;
 const int kStackFrameExtraParamSlot = 12;
-#else  // AIX
+#else  // AIX & Darwin
 // [0] back chain
 // [1] condition register save area
 // [2] link register save area

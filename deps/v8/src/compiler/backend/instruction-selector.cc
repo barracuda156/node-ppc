@@ -1951,7 +1951,8 @@ VISIT_UNSUPPORTED_OP(Word32PairSar)
 VISIT_UNSUPPORTED_OP(BitcastWord32PairToFloat64)
 #endif  // V8_TARGET_ARCH_64_BIT
 
-#if !V8_TARGET_ARCH_IA32 && !V8_TARGET_ARCH_ARM && !V8_TARGET_ARCH_RISCV32
+#if !V8_TARGET_ARCH_IA32 && !V8_TARGET_ARCH_ARM && !V8_TARGET_ARCH_RISCV32 && \
+    !V8_TARGET_ARCH_MIPS && !V8_TARGET_ARCH_PPC
 template <typename Adapter>
 void InstructionSelectorT<Adapter>::VisitWord32AtomicPairLoad(Node* node) {
   UNIMPLEMENTED();
@@ -1998,7 +1999,7 @@ void InstructionSelectorT<Adapter>::VisitWord32AtomicPairCompareExchange(
   UNIMPLEMENTED();
 }
 #endif  // !V8_TARGET_ARCH_IA32 && !V8_TARGET_ARCH_ARM
-        // && !V8_TARGET_ARCH_RISCV32
+        // && !V8_TARGET_ARCH_RISCV32 && !V8_TARGET_ARCH_MIPS && !V8_TARGET_ARCH_PPC
 
 #if !V8_TARGET_ARCH_X64 && !V8_TARGET_ARCH_ARM64 && !V8_TARGET_ARCH_MIPS64 && \
     !V8_TARGET_ARCH_S390 && !V8_TARGET_ARCH_PPC64 &&                          \

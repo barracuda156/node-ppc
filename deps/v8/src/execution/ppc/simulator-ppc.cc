@@ -940,8 +940,18 @@ bool Simulator::OverflowFrom(int32_t alu_out, int32_t left, int32_t right,
 }
 
 static void decodeObjectPair(ObjectPair* pair, intptr_t* x, intptr_t* y) {
+#if V8_HOST_ARCH_64_BIT
   *x = static_cast<intptr_t>(pair->x);
   *y = static_cast<intptr_t>(pair->y);
+#else
+#if V8_TARGET_BIG_ENDIAN
+  *x = static_cast<int32_t>(*pair >> 32);
+  *y = static_cast<int32_t>(*pair);
+#else
+  *x = static_cast<int32_t>(*pair);
+  *y = static_cast<int32_t>(*pair >> 32);
+#endif
+#endif
 }
 
 // Calls into the V8 runtime.

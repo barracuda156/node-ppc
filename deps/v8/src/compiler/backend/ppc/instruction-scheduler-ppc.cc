@@ -114,6 +114,7 @@ int InstructionScheduler::GetTargetInstructionFlags(
     case kPPC_BitcastDoubleToInt64:
     case kPPC_ByteRev32:
     case kPPC_ByteRev64:
+#ifdef V8_TARGET_ARCH_PPC64
     case kPPC_F64x2Splat:
     case kPPC_F64x2ExtractLane:
     case kPPC_F64x2ReplaceLane:
@@ -317,6 +318,7 @@ int InstructionScheduler::GetTargetInstructionFlags(
     case kPPC_S128Select:
     case kPPC_S128AndNot:
     case kPPC_LoadReverseSimd128RR:
+#endif
       return kNoOpcodeFlags;
 
     case kPPC_LoadWordS8:
@@ -326,14 +328,14 @@ int InstructionScheduler::GetTargetInstructionFlags(
     case kPPC_LoadWordS32:
     case kPPC_LoadWordU32:
     case kPPC_LoadByteRev32:
-    case kPPC_LoadWord64:
     case kPPC_LoadByteRev64:
     case kPPC_LoadFloat32:
     case kPPC_LoadDouble:
-    case kPPC_LoadSimd128:
-    case kPPC_Peek:
     case kPPC_LoadDecompressTaggedSigned:
     case kPPC_LoadDecompressTagged:
+    case kPPC_Peek:
+#ifdef V8_TARGET_ARCH_PPC64
+    case kPPC_LoadSimd128:
     case kPPC_S128Load8Splat:
     case kPPC_S128Load16Splat:
     case kPPC_S128Load32Splat:
@@ -350,13 +352,17 @@ int InstructionScheduler::GetTargetInstructionFlags(
     case kPPC_S128Load16Lane:
     case kPPC_S128Load32Lane:
     case kPPC_S128Load64Lane:
+    case kPPC_LoadWord64:
+    case kPPC_AtomicLoadWord64:
+#else
+    case kPPC_AtomicPairLoadWord32:
+#endif
       return kIsLoadOperation;
 
     case kPPC_StoreWord8:
     case kPPC_StoreWord16:
     case kPPC_StoreWord32:
     case kPPC_StoreByteRev32:
-    case kPPC_StoreWord64:
     case kPPC_StoreByteRev64:
     case kPPC_StoreFloat32:
     case kPPC_StoreDouble:
@@ -366,60 +372,75 @@ int InstructionScheduler::GetTargetInstructionFlags(
     case kPPC_PushFrame:
     case kPPC_StoreToStackSlot:
     case kPPC_Sync:
+#ifdef V8_TARGET_ARCH_PPC64
+    case kPPC_StoreWord64:
     case kPPC_S128Store8Lane:
     case kPPC_S128Store16Lane:
     case kPPC_S128Store32Lane:
     case kPPC_S128Store64Lane:
+#endif
       return kHasSideEffect;
 
     case kPPC_AtomicExchangeUint8:
     case kPPC_AtomicExchangeUint16:
     case kPPC_AtomicExchangeWord32:
-    case kPPC_AtomicExchangeWord64:
     case kPPC_AtomicCompareExchangeUint8:
     case kPPC_AtomicCompareExchangeUint16:
     case kPPC_AtomicCompareExchangeWord32:
-    case kPPC_AtomicCompareExchangeWord64:
     case kPPC_AtomicAddUint8:
     case kPPC_AtomicAddUint16:
     case kPPC_AtomicAddUint32:
-    case kPPC_AtomicAddUint64:
     case kPPC_AtomicAddInt8:
     case kPPC_AtomicAddInt16:
     case kPPC_AtomicAddInt32:
-    case kPPC_AtomicAddInt64:
     case kPPC_AtomicSubUint8:
     case kPPC_AtomicSubUint16:
     case kPPC_AtomicSubUint32:
-    case kPPC_AtomicSubUint64:
     case kPPC_AtomicSubInt8:
     case kPPC_AtomicSubInt16:
     case kPPC_AtomicSubInt32:
-    case kPPC_AtomicSubInt64:
     case kPPC_AtomicAndUint8:
     case kPPC_AtomicAndUint16:
     case kPPC_AtomicAndUint32:
-    case kPPC_AtomicAndUint64:
     case kPPC_AtomicAndInt8:
     case kPPC_AtomicAndInt16:
     case kPPC_AtomicAndInt32:
-    case kPPC_AtomicAndInt64:
     case kPPC_AtomicOrUint8:
     case kPPC_AtomicOrUint16:
     case kPPC_AtomicOrUint32:
-    case kPPC_AtomicOrUint64:
     case kPPC_AtomicOrInt8:
     case kPPC_AtomicOrInt16:
     case kPPC_AtomicOrInt32:
-    case kPPC_AtomicOrInt64:
     case kPPC_AtomicXorUint8:
     case kPPC_AtomicXorUint16:
     case kPPC_AtomicXorUint32:
-    case kPPC_AtomicXorUint64:
     case kPPC_AtomicXorInt8:
     case kPPC_AtomicXorInt16:
     case kPPC_AtomicXorInt32:
+#ifdef V8_TARGET_ARCH_PPC64
+    case kPPC_AtomicStoreWord64:
+    case kPPC_AtomicExchangeWord64:
+    case kPPC_AtomicCompareExchangeWord64:
+    case kPPC_AtomicAddUint64:
+    case kPPC_AtomicAddInt64:
+    case kPPC_AtomicSubUint64:
+    case kPPC_AtomicSubInt64:
+    case kPPC_AtomicAndUint64:
+    case kPPC_AtomicAndInt64:
+    case kPPC_AtomicOrUint64:
+    case kPPC_AtomicOrInt64:
+    case kPPC_AtomicXorUint64:
     case kPPC_AtomicXorInt64:
+#else
+    case kPPC_AtomicPairStoreWord32:
+    case kPPC_AtomicPairAddWord32:
+    case kPPC_AtomicPairSubWord32:
+    case kPPC_AtomicPairAndWord32:
+    case kPPC_AtomicPairOrWord32:
+    case kPPC_AtomicPairXorWord32:
+    case kPPC_AtomicPairExchangeWord32:
+    case kPPC_AtomicPairCompareExchangeWord32:
+#endif
       return kHasSideEffect;
 
 #define CASE(Name) case k##Name:

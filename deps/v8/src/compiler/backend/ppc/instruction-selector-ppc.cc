@@ -218,9 +218,15 @@ static void VisitLoadCommon(InstructionSelectorT<Adapter>* selector, Node* node,
       case MachineRepresentation::kWord16:
         opcode = load_rep.IsSigned() ? kPPC_LoadWordS16 : kPPC_LoadWordU16;
         break;
+#if !V8_TARGET_ARCH_PPC64
+      case MachineRepresentation::kTaggedSigned:   // Fall through.
+      case MachineRepresentation::kTaggedPointer:  // Fall through.
+      case MachineRepresentation::kTagged:         // Fall through.
+#endif
       case MachineRepresentation::kWord32:
         opcode = kPPC_LoadWordU32;
         break;
+#if V8_TARGET_ARCH_PPC64
       case MachineRepresentation::kCompressedPointer:  // Fall through.
       case MachineRepresentation::kCompressed:
       case MachineRepresentation::kIndirectPointer:  // Fall through.
@@ -256,6 +262,9 @@ static void VisitLoadCommon(InstructionSelectorT<Adapter>* selector, Node* node,
       // Vectors do not support MRI mode, only MRR is available.
       mode = kNoImmediate;
       break;
+#else
+    case MachineRepresentation::kWord64:
+#endif
     case MachineRepresentation::kSimd256:  // Fall through.
     case MachineRepresentation::kMapWord:  // Fall through.
     case MachineRepresentation::kNone:
@@ -2460,6 +2469,7 @@ void InstructionSelectorT<Adapter>::VisitWordCompareZero(
       case IrOpcode::kFloat32LessThanOrEqual:
         cont->OverwriteAndNegateIfEqual(kUnsignedLessThanOrEqual);
         return VisitFloat32Compare(this, value, cont);
+#if V8_TARGET_ARCH_PPC64
       case IrOpcode::kFloat64Equal:
         cont->OverwriteAndNegateIfEqual(kEqual);
         return VisitFloat64Compare(this, value, cont);
@@ -2469,6 +2479,7 @@ void InstructionSelectorT<Adapter>::VisitWordCompareZero(
       case IrOpcode::kFloat64LessThanOrEqual:
         cont->OverwriteAndNegateIfEqual(kUnsignedLessThanOrEqual);
         return VisitFloat64Compare(this, value, cont);
+#endif
       case IrOpcode::kProjection:
         // Check if this is the overflow output projection of an
         // <Operation>WithOverflow node.
@@ -2867,12 +2878,14 @@ void InstructionSelectorT<Adapter>::VisitWord32AtomicLoad(Node* node) {
   VisitLoadCommon(this, node, load_rep);
 }
 
+#ifdef V8_TARGET_ARCH_PPC64
 template <typename Adapter>
 void InstructionSelectorT<Adapter>::VisitWord64AtomicLoad(Node* node) {
   AtomicLoadParameters atomic_load_params = AtomicLoadParametersOf(node->op());
   LoadRepresentation load_rep = atomic_load_params.representation();
   VisitLoadCommon(this, node, load_rep);
 }
+#endif
 
 template <typename Adapter>
 void InstructionSelectorT<Adapter>::VisitWord32AtomicStore(node_t node) {
@@ -2885,6 +2898,7 @@ void InstructionSelectorT<Adapter>::VisitWord32AtomicStore(node_t node) {
   }
 }
 
+#ifdef V8_TARGET_ARCH_PPC64
 template <typename Adapter>
 void InstructionSelectorT<Adapter>::VisitWord64AtomicStore(node_t node) {
   if constexpr (Adapter::IsTurboshaft) {
@@ -2895,6 +2909,7 @@ void InstructionSelectorT<Adapter>::VisitWord64AtomicStore(node_t node) {
                      store_params.order());
   }
 }
+#endif
 
 template <typename Adapter>
 void VisitAtomicExchange(InstructionSelectorT<Adapter>* selector, Node* node,
@@ -2936,6 +2951,7 @@ void InstructionSelectorT<Adapter>::VisitWord32AtomicExchange(Node* node) {
   VisitAtomicExchange(this, node, opcode);
 }
 
+#ifdef V8_TARGET_ARCH_PPC64
 template <typename Adapter>
 void InstructionSelectorT<Adapter>::VisitWord64AtomicExchange(Node* node) {
   ArchOpcode opcode;
@@ -2953,6 +2969,7 @@ void InstructionSelectorT<Adapter>::VisitWord64AtomicExchange(Node* node) {
   }
   VisitAtomicExchange(this, node, opcode);
 }
+#endif
 
 template <typename Adapter>
 void VisitAtomicCompareExchange(InstructionSelectorT<Adapter>* selector,
@@ -3001,6 +3018,7 @@ void InstructionSelectorT<Adapter>::VisitWord32AtomicCompareExchange(
   VisitAtomicCompareExchange(this, node, opcode);
 }
 
+#ifdef V8_TARGET_ARCH_PPC64
 template <typename Adapter>
 void InstructionSelectorT<Adapter>::VisitWord64AtomicCompareExchange(
     Node* node) {
@@ -3019,14 +3037,20 @@ void InstructionSelectorT<Adapter>::VisitWord64AtomicCompareExchange(
   }
   VisitAtomicCompareExchange(this, node, opcode);
 }
+#endif
 
 template <typename Adapter>
 void VisitAtomicBinaryOperation(InstructionSelectorT<Adapter>* selector,
                                 Node* node, ArchOpcode int8_op,
                                 ArchOpcode uint8_op, ArchOpcode int16_op,
                                 ArchOpcode uint16_op, ArchOpcode int32_op,
-                                ArchOpcode uint32_op, ArchOpcode int64_op,
-                                ArchOpcode uint64_op) {
+                                ArchOpcode int32_op, ArchOpcode uint32_op
+                                ArchOpcode int64_op, ArchOpcode uint64_op) {
+#if V8_TARGET_ARCH_PPC64
+                                ,
+                                ArchOpcode int64_op, ArchOpcode uint64_op
+#endif
+) {
   PPCOperandGeneratorT<Adapter> g(selector);
   Node* base = node->InputAt(0);
   Node* index = node->InputAt(1);
@@ -3047,10 +3071,12 @@ void VisitAtomicBinaryOperation(InstructionSelectorT<Adapter>* selector,
     opcode = int32_op;
   } else if (type == MachineType::Uint32()) {
     opcode = uint32_op;
+#if V8_TARGET_ARCH_PPC64
   } else if (type == MachineType::Int64()) {
     opcode = int64_op;
   } else if (type == MachineType::Uint64()) {
     opcode = uint64_op;
+#endif
   } else {
     UNREACHABLE();
   }
@@ -3087,7 +3113,8 @@ void InstructionSelectorT<Adapter>::VisitWord64AtomicBinaryOperation(
   UNREACHABLE();
 }
 
-#define VISIT_ATOMIC_BINOP(op)                                            \
+#if V8_TARGET_ARCH_PPC64
+#define VISIT_ATOMIC_BINOP32(op)                                          \
   template <typename Adapter>                                             \
   void InstructionSelectorT<Adapter>::VisitWord32Atomic##op(Node* node) { \
     VisitAtomicBinaryOperation(                                           \
@@ -3095,7 +3122,25 @@ void InstructionSelectorT<Adapter>::VisitWord64AtomicBinaryOperation(
         kPPC_Atomic##op##Int16, kPPC_Atomic##op##Uint16,                  \
         kPPC_Atomic##op##Int32, kPPC_Atomic##op##Uint32,                  \
         kPPC_Atomic##op##Int64, kPPC_Atomic##op##Uint64);                 \
-  }                                                                       \
+  }
+#else
+#define VISIT_ATOMIC_BINOP32(op)                                          \
+  void InstructionSelector::VisitWord32Atomic##op(Node* node) {           \
+    VisitAtomicBinaryOperation(                                           \
+        this, node, kPPC_Atomic##op##Int8, kPPC_Atomic##op##Uint8,        \
+        kPPC_Atomic##op##Int16, kPPC_Atomic##op##Uint16,                  \
+        kPPC_Atomic##op##Int32, kPPC_Atomic##op##Uint32);                 \
+  }
+#endif
+    VISIT_ATOMIC_BINOP32(Add)
+    VISIT_ATOMIC_BINOP32(Sub)
+    VISIT_ATOMIC_BINOP32(And)
+    VISIT_ATOMIC_BINOP32(Or)
+    VISIT_ATOMIC_BINOP32(Xor)
+#undef VISIT_ATOMIC_BINOP32
+
+#ifdef V8_TARGET_ARCH_PPC64
+#define VISIT_ATOMIC_BINOP64(op)
   template <typename Adapter>                                             \
   void InstructionSelectorT<Adapter>::VisitWord64Atomic##op(Node* node) { \
     VisitAtomicBinaryOperation(                                           \
@@ -3104,12 +3149,13 @@ void InstructionSelectorT<Adapter>::VisitWord64AtomicBinaryOperation(
         kPPC_Atomic##op##Int32, kPPC_Atomic##op##Uint32,                  \
         kPPC_Atomic##op##Int64, kPPC_Atomic##op##Uint64);                 \
   }
-VISIT_ATOMIC_BINOP(Add)
-VISIT_ATOMIC_BINOP(Sub)
-VISIT_ATOMIC_BINOP(And)
-VISIT_ATOMIC_BINOP(Or)
-VISIT_ATOMIC_BINOP(Xor)
-#undef VISIT_ATOMIC_BINOP
+    VISIT_ATOMIC_BINOP64(Add)
+    VISIT_ATOMIC_BINOP64(Sub)
+    VISIT_ATOMIC_BINOP64(And)
+    VISIT_ATOMIC_BINOP64(Or)
+    VISIT_ATOMIC_BINOP64(Xor)
+#undef VISIT_ATOMIC_BINOP64
+#endif
 
 template <typename Adapter>
 void InstructionSelectorT<Adapter>::VisitInt32AbsWithOverflow(node_t node) {
@@ -3700,6 +3746,97 @@ template class EXPORT_TEMPLATE_DEFINE(V8_EXPORT_PRIVATE)
     InstructionSelectorT<TurbofanAdapter>;
 template class EXPORT_TEMPLATE_DEFINE(V8_EXPORT_PRIVATE)
     InstructionSelectorT<TurboshaftAdapter>;
+
+#if V8_TARGET_ARCH_PPC
+void InstructionSelector::VisitWord32AtomicPairLoad(Node* node) {
+  PPCOperandGenerator g(this);
+  Node* base = node->InputAt(0);
+  Node* offset = node->InputAt(1);
+  InstructionCode opcode = kPPC_AtomicPairLoadWord32;
+  if (node->opcode() == IrOpcode::kPoisonedLoad &&
+      poisoning_level_ != PoisoningMitigationLevel::kDontPoison) {
+    opcode |= MiscField::encode(kMemoryAccessPoisoned);
+  }
+  Node* projection0 = NodeProperties::FindProjection(node, 0);
+  Node* projection1 = NodeProperties::FindProjection(node, 1);
+  InstructionOperand inputs[] = {g.UseUniqueRegister(base),
+                                 g.UseUniqueRegister(offset)};
+  InstructionOperand outputs[] = {g.DefineAsFixed(projection0, r3),
+                                  g.DefineAsFixed(projection1, r4)};
+  InstructionOperand temps[] = {g.TempRegister()};
+  Emit(opcode, arraysize(outputs), outputs, arraysize(inputs), inputs,
+       arraysize(temps), temps);
+}
+void InstructionSelector::VisitWord32AtomicPairStore(Node* node) {
+  PPCOperandGenerator g(this);
+  Node* base = node->InputAt(0);
+  Node* offset = node->InputAt(1);
+  Node* value_low = node->InputAt(2);
+  Node* value_high = node->InputAt(3);
+  InstructionCode opcode = kPPC_AtomicPairStoreWord32;
+  InstructionOperand inputs[] = {
+      g.UseUniqueRegister(base), g.UseUniqueRegister(offset),
+      g.UseUniqueRegister(value_low), g.UseUniqueRegister(value_high)};
+  InstructionOperand temps[] = {g.TempRegister(), g.TempRegister()};
+  Emit(opcode, 0, nullptr, arraysize(inputs), inputs, arraysize(temps), temps);
+}
+void VisitWord32AtomicPairBinOp(InstructionSelector* selector, Node* node,
+                                ArchOpcode opcode) {
+  PPCOperandGenerator g(selector);
+  Node* base = node->InputAt(0);
+  Node* offset = node->InputAt(1);
+  Node* value_low = node->InputAt(2);
+  Node* value_high = node->InputAt(3);
+  InstructionCode code = opcode;
+  InstructionOperand inputs[] = {
+      g.UseFixed(value_low, r3), g.UseFixed(value_high, r4),
+      g.UseUniqueRegister(base), g.UseUniqueRegister(offset)};
+  Node* projection0 = NodeProperties::FindProjection(node, 0);
+  Node* projection1 = NodeProperties::FindProjection(node, 1);
+  InstructionOperand outputs[] = {g.DefineAsFixed(projection0, r3),
+                                  g.DefineAsFixed(projection1, r4)};
+  InstructionOperand temps[] = {g.TempRegister()};
+  selector->Emit(code, arraysize(outputs), outputs, arraysize(inputs), inputs,
+                 arraysize(temps), temps);
+}
+void InstructionSelector::VisitWord32AtomicPairAdd(Node* node) {
+  VisitWord32AtomicPairBinOp(this, node, kPPC_AtomicPairAddWord32);
+}
+void InstructionSelector::VisitWord32AtomicPairSub(Node* node) {
+  VisitWord32AtomicPairBinOp(this, node, kPPC_AtomicPairSubWord32);
+}
+void InstructionSelector::VisitWord32AtomicPairAnd(Node* node) {
+  VisitWord32AtomicPairBinOp(this, node, kPPC_AtomicPairAndWord32);
+}
+void InstructionSelector::VisitWord32AtomicPairOr(Node* node) {
+  VisitWord32AtomicPairBinOp(this, node, kPPC_AtomicPairOrWord32);
+}
+void InstructionSelector::VisitWord32AtomicPairXor(Node* node) {
+  VisitWord32AtomicPairBinOp(this, node, kPPC_AtomicPairXorWord32);
+}
+void InstructionSelector::VisitWord32AtomicPairExchange(Node* node) {
+  VisitWord32AtomicPairBinOp(this, node, kPPC_AtomicPairExchangeWord32);
+}
+void InstructionSelector::VisitWord32AtomicPairCompareExchange(Node* node) {
+  PPCOperandGenerator g(this);
+  AddressingMode addressing_mode = kMode_MRI;
+  InstructionOperand inputs[] = {g.UseFixed(node->InputAt(2), r5),
+                                 g.UseFixed(node->InputAt(3), r6),
+                                 g.UseFixed(node->InputAt(4), r7),
+                                 g.UseFixed(node->InputAt(5), r8),
+                                 g.UseUniqueRegister(node->InputAt(0)),
+                                 g.UseUniqueRegister(node->InputAt(1))};
+  InstructionCode code = kPPC_AtomicPairCompareExchangeWord32 |
+                         AddressingModeField::encode(addressing_mode);
+  Node* projection0 = NodeProperties::FindProjection(node, 0);
+  Node* projection1 = NodeProperties::FindProjection(node, 1);
+  InstructionOperand outputs[] = {g.DefineAsFixed(projection0, r3),
+                                  g.DefineAsFixed(projection1, r4)};
+  InstructionOperand temps[] = {g.TempRegister(), g.TempRegister()};
+  Emit(code, arraysize(outputs), outputs, arraysize(inputs), inputs,
+       arraysize(temps), temps);
+}
+#endif
 
 }  // namespace compiler
 }  // namespace internal
