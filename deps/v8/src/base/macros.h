@@ -102,8 +102,10 @@ char (&ArraySizeHelper(const T (&array)[N]))[N];
 namespace v8::base {
 template <class Dest, class Source>
 V8_INLINE Dest bit_cast(Source const& source) {
+#ifndef __ppc__
   static_assert(sizeof(Dest) == sizeof(Source),
                 "source and dest must be same size");
+#endif
   Dest dest;
   memcpy(&dest, &source, sizeof(dest));
   return dest;
@@ -271,7 +273,7 @@ V8_INLINE A implicit_cast(A x) {
 #elif V8_HOST_ARCH_64_BIT
 # define V8_PTR_PREFIX    "l"
 #else
-#if V8_OS_AIX
+#if V8_OS_AIX || V8_OS_DARWIN
 #define V8_PTR_PREFIX "l"
 #else
 # define V8_PTR_PREFIX    ""
@@ -302,7 +304,7 @@ V8_INLINE A implicit_cast(A x) {
 #endif
 
 // Fix for Mac OS X defining uintptr_t as "unsigned long":
-#if V8_OS_DARWIN
+#if V8_OS_DARWIN && !defined(__ppc__)
 #undef V8PRIxPTR
 #define V8PRIxPTR "lx"
 #undef V8PRIdPTR

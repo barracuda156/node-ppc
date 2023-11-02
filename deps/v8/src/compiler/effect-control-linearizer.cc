@@ -7104,7 +7104,6 @@ Node* EffectControlLinearizer::LowerFastApiCall(Node* node) {
             return __ UndefinedConstant();
           case CTypeInfo::Type::kBool:
 #if V8_OS_DARWIN && V8_TARGET_ARCH_PPC
-          case CTypeInfo::Type::kBool:
             static_assert(sizeof(bool) == 4, "unsupported bool size");
 #else
             static_assert(sizeof(bool) == 1, "unsupported bool size");

@@ -1137,7 +1137,7 @@ static void* ThreadEntry(void* arg) {
   // one).
   { MutexGuard lock_guard(&thread->data()->thread_creation_mutex_); }
   SetThreadName(thread->name());
-#if V8_OS_DARWIN
+#if V8_OS_DARWIN && !defined(__POWERPC__)
   switch (thread->priority()) {
     case Thread::Priority::kBestEffort:
       pthread_set_qos_class_self_np(QOS_CLASS_BACKGROUND, 0);

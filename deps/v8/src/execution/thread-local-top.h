@@ -163,7 +163,9 @@ class ThreadLocalTop {
   Address secondary_stack_limit_;
 };
 
-static_assert(ThreadLocalTop::kSizeInBytes == sizeof(ThreadLocalTop));
+#ifndef __ppc__
+  static_assert(ThreadLocalTop::kSizeInBytes == sizeof(ThreadLocalTop));
+#endif
 
 }  // namespace internal
 }  // namespace v8

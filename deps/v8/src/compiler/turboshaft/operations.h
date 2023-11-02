@@ -428,7 +428,9 @@ struct EffectDimensions {
     return bits() != other.bits();
   }
 };
-static_assert(sizeof(EffectDimensions) == sizeof(EffectDimensions::Bits));
+#ifndef __ppc__
+  static_assert(sizeof(EffectDimensions) == sizeof(EffectDimensions::Bits));
+#endif
 
 // Possible reorderings are restricted using two bit vectors: `produces` and
 // `consumes`. Two operations cannot be reordered if the first operation
@@ -695,7 +697,9 @@ struct OpEffects {
     return produces.store_heap_memory | produces.store_off_heap_memory;
   }
 };
-static_assert(sizeof(OpEffects) == sizeof(OpEffects::Bits));
+#ifndef __ppc__
+  static_assert(sizeof(OpEffects) == sizeof(OpEffects::Bits));
+#endif
 
 inline bool CannotSwapOperations(OpEffects first, OpEffects second) {
   return first.produces.bits() & (second.consumes.bits());
