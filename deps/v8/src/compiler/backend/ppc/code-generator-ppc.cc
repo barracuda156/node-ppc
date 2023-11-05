@@ -1527,12 +1527,20 @@ CodeGenerator::CodeGenResult CodeGenerator::AssembleArchInstruction(
     case kPPC_MulHigh32:
       __ mulhw(r0, i.InputRegister(0), i.InputRegister(1), i.OutputRCBit());
       // High 32 bits are undefined and need to be cleared.
+#if V8_TARGET_ARCH_PPC64
       __ clrldi(i.OutputRegister(), r0, Operand(32));
+#else
+      __ mr(i.OutputRegister(), r0);
+#endif
       break;
     case kPPC_MulHighU32:
       __ mulhwu(r0, i.InputRegister(0), i.InputRegister(1), i.OutputRCBit());
       // High 32 bits are undefined and need to be cleared.
+#if V8_TARGET_ARCH_PPC64
       __ clrldi(i.OutputRegister(), r0, Operand(32));
+#else
+      __ mr(i.OutputRegister(), r0);
+#endif
       break;
     case kPPC_MulDouble:
       ASSEMBLE_FLOAT_BINOP_RC(fmul, MiscField::decode(instr->opcode()));
