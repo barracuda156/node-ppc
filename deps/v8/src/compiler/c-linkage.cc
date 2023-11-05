@@ -105,14 +105,21 @@ namespace {
 // ===========================================================================
 #ifdef V8_TARGET_LITTLE_ENDIAN  // ppc64le linux
 #define STACK_SHADOW_WORDS 12
-#else  // AIX
+#else  // AIX and Darwin
 #define STACK_SHADOW_WORDS 14
 #endif
 #define PARAM_REGISTERS r3, r4, r5, r6, r7, r8, r9, r10
+#if V8_OS_MACOSX
+#define CALLEE_SAVE_REGISTERS                                                 \
+  r13.bit() | r14.bit() | r15.bit() | r16.bit() | r17.bit() | r18.bit() |     \
+      r19.bit() | r20.bit() | r21.bit() | r22.bit() | r23.bit() | r24.bit() | \
+      r25.bit() | r26.bit() | r27.bit() | r28.bit() | r29.bit() | r30.bit()
+#else
 #define CALLEE_SAVE_REGISTERS                                                 \
   r14.bit() | r15.bit() | r16.bit() | r17.bit() | r18.bit() | r19.bit() |     \
       r20.bit() | r21.bit() | r22.bit() | r23.bit() | r24.bit() | r25.bit() | \
       r26.bit() | r27.bit() | r28.bit() | r29.bit() | r30.bit()
+#endif
 #define CALLEE_SAVE_FP_REGISTERS                                              \
   d14.bit() | d15.bit() | d16.bit() | d17.bit() | d18.bit() | d19.bit() |     \
       d20.bit() | d21.bit() | d22.bit() | d23.bit() | d24.bit() | d25.bit() | \
