@@ -25,7 +25,7 @@
 #include <string>
 #include <vector>
 
-#if V8_LIBC_GLIBC || V8_LIBC_BSD || V8_LIBC_UCLIBC || V8_OS_SOLARIS
+#if V8_LIBC_GLIBC || V8_LIBC_BSD || ( V8_LIBC_UCLIBC && __UCLIBC_HAS_BACKTRACE__ ) || V8_OS_SOLARIS
 #define HAVE_EXECINFO_H 1
 #endif
 

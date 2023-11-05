@@ -145,7 +145,11 @@ const int kNumSafepointRegisters = 32;
 // The following constants describe the stack frame linkage area as
 // defined by the ABI.  Note that kNumRequiredStackFrameSlots must
 // satisfy alignment requirements (rounding up if required).
-#if V8_TARGET_ARCH_PPC64 &&     \
+#if V8_TARGET_ARCH_PPC
+const int kNumRequiredStackFrameSlots = 4;
+const int kStackFrameLRSlot = 1;
+const int kStackFrameExtraParamSlot = 2;
+#elif V8_TARGET_ARCH_PPC64 &&   \
     (V8_TARGET_LITTLE_ENDIAN || \
      (defined(_CALL_ELF) && _CALL_ELF == 2))  // ELFv2 ABI
 // [0] back chain
@@ -300,6 +304,7 @@ constexpr Register kContextRegister = r30;
 constexpr Register kAllocateSizeRegister = r4;
 constexpr Register kSpeculationPoisonRegister = r14;
 constexpr Register kInterpreterAccumulatorRegister = r3;
+constexpr Register kScratchReg = r11;
 constexpr Register kInterpreterBytecodeOffsetRegister = r15;
 constexpr Register kInterpreterBytecodeArrayRegister = r16;
 constexpr Register kInterpreterDispatchTableRegister = r17;

@@ -10,7 +10,8 @@
 #include "src/codegen/code-desc.h"
 
 #if !defined(V8_TARGET_ARCH_X64) && !defined(V8_TARGET_ARCH_ARM) && \
-    !defined(V8_TARGET_ARCH_ARM64)
+    !defined(V8_TARGET_ARCH_ARM64) && \
+    !defined(V8_TARGET_ARCH_PPC) && !defined(V8_TARGET_ARCH_PPC64)
 
 // Placeholders for unsupported architectures.
 
@@ -320,6 +321,7 @@ void EhFrameWriter::RecordRegisterSavedToStack(int register_code, int offset) {
   }
 }
 
+#if !V8_TARGET_ARCH_PPC && !V8_TARGET_ARCH_PPC64
 void EhFrameWriter::RecordRegisterNotModified(Register name) {
   DCHECK_EQ(writer_state_, InternalState::kInitialized);
   WriteOpcode(EhFrameConstants::DwarfOpcodes::kSameValue);
@@ -334,6 +336,7 @@ void EhFrameWriter::RecordRegisterFollowsInitialRule(Register name) {
              << EhFrameConstants::kFollowInitialRuleMaskSize) |
             (code & EhFrameConstants::kFollowInitialRuleMask));
 }
+#endif
 
 void EhFrameWriter::Finish(int code_size) {
   DCHECK_EQ(writer_state_, InternalState::kInitialized);

@@ -415,6 +415,9 @@ class Code : public HeapObject {
   static constexpr int kHeaderPaddingSize = 20;
 #elif V8_TARGET_ARCH_MIPS
   static constexpr int kHeaderPaddingSize = 20;
+#elif V8_TARGET_ARCH_PPC
+  static constexpr int kHeaderPaddingSize =
+      FLAG_enable_embedded_constant_pool ? 16 : 0;
 #elif V8_TARGET_ARCH_PPC64
   static constexpr int kHeaderPaddingSize =
       FLAG_enable_embedded_constant_pool ? 28 : 0;

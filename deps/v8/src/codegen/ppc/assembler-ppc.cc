@@ -36,7 +36,7 @@
 
 #include "src/codegen/ppc/assembler-ppc.h"
 
-#if V8_TARGET_ARCH_PPC
+#if V8_TARGET_ARCH_PPC || V8_TARGET_ARCH_PPC64
 
 #include "src/base/bits.h"
 #include "src/base/cpu.h"
@@ -1635,22 +1635,38 @@ void Assembler::fctiw(const DoubleRegister frt, const DoubleRegister frb) {
 
 void Assembler::frin(const DoubleRegister frt, const DoubleRegister frb,
                      RCBit rc) {
+#ifndef V8_TARGET_ARCH_PPC64
+  assert(false);
+#else
   emit(EXT4 | FRIN | frt.code() * B21 | frb.code() * B11 | rc);
+#endif
 }
 
 void Assembler::friz(const DoubleRegister frt, const DoubleRegister frb,
                      RCBit rc) {
+#ifndef V8_TARGET_ARCH_PPC64
+  assert(false);
+#else
   emit(EXT4 | FRIZ | frt.code() * B21 | frb.code() * B11 | rc);
+#endif
 }
 
 void Assembler::frip(const DoubleRegister frt, const DoubleRegister frb,
                      RCBit rc) {
+#ifndef V8_TARGET_ARCH_PPC64
+  assert(false);
+#else
   emit(EXT4 | FRIP | frt.code() * B21 | frb.code() * B11 | rc);
+#endif
 }
 
 void Assembler::frim(const DoubleRegister frt, const DoubleRegister frb,
                      RCBit rc) {
+#ifndef V8_TARGET_ARCH_PPC64
+  assert(false);
+#else
   emit(EXT4 | FRIM | frt.code() * B21 | frb.code() * B11 | rc);
+#endif
 }
 
 void Assembler::frsp(const DoubleRegister frt, const DoubleRegister frb,
@@ -1660,42 +1676,74 @@ void Assembler::frsp(const DoubleRegister frt, const DoubleRegister frb,
 
 void Assembler::fcfid(const DoubleRegister frt, const DoubleRegister frb,
                       RCBit rc) {
+ #ifndef V8_TARGET_ARCH_PPC64
+  assert(false);
+#else
   emit(EXT4 | FCFID | frt.code() * B21 | frb.code() * B11 | rc);
+#endif
 }
 
 void Assembler::fcfidu(const DoubleRegister frt, const DoubleRegister frb,
                        RCBit rc) {
+#ifndef V8_TARGET_ARCH_PPC64
+  assert(false);
+#else
   emit(EXT4 | FCFIDU | frt.code() * B21 | frb.code() * B11 | rc);
+#endif
 }
 
 void Assembler::fcfidus(const DoubleRegister frt, const DoubleRegister frb,
                         RCBit rc) {
+#ifndef V8_TARGET_ARCH_PPC64
+  assert(false);
+#else
   emit(EXT3 | FCFIDUS | frt.code() * B21 | frb.code() * B11 | rc);
+#endif
 }
 
 void Assembler::fcfids(const DoubleRegister frt, const DoubleRegister frb,
                        RCBit rc) {
+#ifndef V8_TARGET_ARCH_PPC64
+  assert(false);
+#else
   emit(EXT3 | FCFIDS | frt.code() * B21 | frb.code() * B11 | rc);
+#endif
 }
 
 void Assembler::fctid(const DoubleRegister frt, const DoubleRegister frb,
                       RCBit rc) {
+#ifndef V8_TARGET_ARCH_PPC64
+  assert(false);
+#else
   emit(EXT4 | FCTID | frt.code() * B21 | frb.code() * B11 | rc);
+#endif
 }
 
 void Assembler::fctidz(const DoubleRegister frt, const DoubleRegister frb,
                        RCBit rc) {
+#ifndef V8_TARGET_ARCH_PPC64
+  assert(false);
+#else
   emit(EXT4 | FCTIDZ | frt.code() * B21 | frb.code() * B11 | rc);
+#endif
 }
 
 void Assembler::fctidu(const DoubleRegister frt, const DoubleRegister frb,
                        RCBit rc) {
+#ifndef V8_TARGET_ARCH_PPC64
+  assert(false);
+#else
   emit(EXT4 | FCTIDU | frt.code() * B21 | frb.code() * B11 | rc);
+#endif
 }
 
 void Assembler::fctiduz(const DoubleRegister frt, const DoubleRegister frb,
                         RCBit rc) {
+#ifndef V8_TARGET_ARCH_PPC64
+  assert(false);
+#else
   emit(EXT4 | FCTIDUZ | frt.code() * B21 | frb.code() * B11 | rc);
+#endif
 }
 
 void Assembler::fsel(const DoubleRegister frt, const DoubleRegister fra,
@@ -1737,7 +1785,18 @@ void Assembler::mtfsf(const DoubleRegister frb, bool L, int FLM, bool W,
 
 void Assembler::fsqrt(const DoubleRegister frt, const DoubleRegister frb,
                       RCBit rc) {
+#ifndef USE_SIMULATOR
+#if V8_TARGET_ARCH_PPC
+  assert(false);
+#endif
+#else
   emit(EXT4 | FSQRT | frt.code() * B21 | frb.code() * B11 | rc);
+#endif
+}
+
+void Assembler::frsqrte(const DoubleRegister frt, const DoubleRegister frb,
+                      RCBit rc) {
+  emit(EXT4 | FRSQRTE | frt.code() * B21 | frb.code() * B11 | rc);
 }
 
 void Assembler::fabs(const DoubleRegister frt, const DoubleRegister frb,
@@ -1962,4 +2021,4 @@ Register UseScratchRegisterScope::Acquire() {
 }  // namespace internal
 }  // namespace v8
 
-#endif  // V8_TARGET_ARCH_PPC
+#endif  // V8_TARGET_ARCH_PPC || V8_TARGET_ARCH_PPC64

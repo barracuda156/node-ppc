@@ -69,6 +69,19 @@ class V8_EXPORT_PRIVATE TurboAssembler : public TurboAssemblerBase {
  public:
   using TurboAssemblerBase::TurboAssemblerBase;
 
+  #if V8_TARGET_ARCH_PPC
+  void ConvertIntToFloatingPointNoPPC64(Register src,
+    DoubleRegister double_dst,
+    bool result_is_a_float,
+    bool src_is_unsigned);
+  void ConvertDoubleToInt32NoPPC64(DoubleRegister src,
+                                Register dest,
+                                Register dest_hi,
+                                FPRoundingMode rounding_mode = kRoundToZero);
+  void RsqrtNewtonStep(DoubleRegister dst, DoubleRegister src, RCBit rc);
+  void TruncateApproximatedDouble(DoubleRegister dst, DoubleRegister src, unsigned int bits);
+  #endif
+
   // Converts the integer (untagged smi) in |src| to a double, storing
   // the result to |dst|
   void ConvertIntToDouble(Register src, DoubleRegister dst);
@@ -584,13 +597,6 @@ class V8_EXPORT_PRIVATE TurboAssembler : public TurboAssemblerBase {
     // High bits must be identical to fit into an 32-bit integer
     extsw(scratch, value);
     cmp(scratch, value, cr);
-  }
-#else
-  inline void TestIfInt32(Register hi_word, Register lo_word, Register scratch,
-                          CRegister cr = cr7) {
-    // High bits must be identical to fit into an 32-bit integer
-    srawi(scratch, lo_word, 31);
-    cmp(scratch, hi_word, cr);
   }
 #endif
 

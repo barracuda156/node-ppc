@@ -89,6 +89,10 @@ if (v8_snapshot_toolchain == "") {
       }
     } else if (v8_current_cpu == "arm" || v8_current_cpu == "mipsel") {
       _cpus = "x86_v8_${v8_current_cpu}"
+    } else if (v8_current_cpu == "ppc") {
+      # reset clang to use gcc toolchain
+      _clang = ""
+      _cpus = "${v8_current_cpu}"
     } else {
       # This branch should not be reached; leave _cpus blank so the assert
       # below will fail.

@@ -13,6 +13,8 @@
 #include "src/compiler/backend/arm64/unwinding-info-writer-arm64.h"
 #elif V8_TARGET_ARCH_X64
 #include "src/compiler/backend/x64/unwinding-info-writer-x64.h"
+#elif V8_TARGET_ARCH_PPC || V8_TARGET_ARCH_PPC64
+#include "src/compiler/backend/ppc/unwinding-info-writer-ppc.h"
 #else
 
 // Placeholder for unsupported architectures.

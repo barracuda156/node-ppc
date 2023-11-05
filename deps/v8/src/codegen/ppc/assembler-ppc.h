@@ -914,6 +914,8 @@ class Assembler : public AssemblerBase {
              RCBit rc = LeaveRC);
   void fsqrt(const DoubleRegister frt, const DoubleRegister frb,
              RCBit rc = LeaveRC);
+  void frsqrte(const DoubleRegister frt, const DoubleRegister frb,
+          RCBit rc);
   void fabs(const DoubleRegister frt, const DoubleRegister frb,
             RCBit rc = LeaveRC);
   void fmadd(const DoubleRegister frt, const DoubleRegister fra,

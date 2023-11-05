@@ -174,6 +174,7 @@ void InstructionSelector::VisitLoad(Node* node) {
   Node* offset = node->InputAt(1);
   InstructionCode opcode = kArchNop;
   ImmediateMode mode = kInt16Imm;
+
   switch (load_rep.representation()) {
     case MachineRepresentation::kFloat32:
       opcode = kPPC_LoadFloat32;
@@ -188,9 +189,15 @@ void InstructionSelector::VisitLoad(Node* node) {
     case MachineRepresentation::kWord16:
       opcode = load_rep.IsSigned() ? kPPC_LoadWordS16 : kPPC_LoadWordU16;
       break;
+#if !V8_TARGET_ARCH_PPC64
+    case MachineRepresentation::kTaggedSigned:   // Fall through.
+    case MachineRepresentation::kTaggedPointer:  // Fall through.
+    case MachineRepresentation::kTagged:         // Fall through.
+#endif
     case MachineRepresentation::kWord32:
       opcode = kPPC_LoadWordU32;
       break;
+#if V8_TARGET_ARCH_PPC64
     case MachineRepresentation::kTaggedSigned:   // Fall through.
     case MachineRepresentation::kTaggedPointer:  // Fall through.
     case MachineRepresentation::kTagged:         // Fall through.
@@ -198,6 +205,9 @@ void InstructionSelector::VisitLoad(Node* node) {
       opcode = kPPC_LoadWord64;
       mode = kInt16Imm_4ByteAligned;
       break;
+#else
+    case MachineRepresentation::kWord64:
+#endif
     case MachineRepresentation::kCompressedSigned:   // Fall through.
     case MachineRepresentation::kCompressedPointer:  // Fall through.
     case MachineRepresentation::kCompressed:         // Fall through.
@@ -307,6 +317,7 @@ void InstructionSelector::VisitStore(Node* node) {
       case MachineRepresentation::kTaggedSigned:   // Fall through.
       case MachineRepresentation::kTaggedPointer:  // Fall through.
       case MachineRepresentation::kTagged:         // Fall through.
+        mode = kInt16Imm_4ByteAligned;
 #endif
       case MachineRepresentation::kWord32:
         opcode = kPPC_StoreWord32;
@@ -1473,13 +1484,11 @@ void VisitWord32Compare(InstructionSelector* selector, Node* node,
   VisitWordCompare(selector, node, kPPC_Cmp32, cont, false, mode);
 }
 
-#if V8_TARGET_ARCH_PPC64
 void VisitWord64Compare(InstructionSelector* selector, Node* node,
                         FlagsContinuation* cont) {
   ImmediateMode mode = (CompareLogical(cont) ? kInt16Imm_Unsigned : kInt16Imm);
   VisitWordCompare(selector, node, kPPC_Cmp64, cont, false, mode);
 }
-#endif
 
 // Shared routine for multiple float32 compare operations.
 void VisitFloat32Compare(InstructionSelector* selector, Node* node,
@@ -1533,7 +1542,6 @@ void InstructionSelector::VisitWordCompareZero(Node* user, Node* value,
       case IrOpcode::kUint32LessThanOrEqual:
         cont->OverwriteAndNegateIfEqual(kUnsignedLessThanOrEqual);
         return VisitWord32Compare(this, value, cont);
-#if V8_TARGET_ARCH_PPC64
       case IrOpcode::kWord64Equal:
         cont->OverwriteAndNegateIfEqual(kEqual);
         return VisitWord64Compare(this, value, cont);
@@ -1549,7 +1557,6 @@ void InstructionSelector::VisitWordCompareZero(Node* user, Node* value,
       case IrOpcode::kUint64LessThanOrEqual:
         cont->OverwriteAndNegateIfEqual(kUnsignedLessThanOrEqual);
         return VisitWord64Compare(this, value, cont);
-#endif
       case IrOpcode::kFloat32Equal:
         cont->OverwriteAndNegateIfEqual(kEqual);
         return VisitFloat32Compare(this, value, cont);
@@ -1622,7 +1629,6 @@ void InstructionSelector::VisitWordCompareZero(Node* user, Node* value,
 // case IrOpcode::kWord32Shl:
 // case IrOpcode::kWord32Shr:
 // case IrOpcode::kWord32Ror:
-#if V8_TARGET_ARCH_PPC64
       case IrOpcode::kInt64Sub:
         return VisitWord64Compare(this, value, cont);
       case IrOpcode::kWord64And:
@@ -1637,7 +1643,6 @@ void InstructionSelector::VisitWordCompareZero(Node* user, Node* value,
 // case IrOpcode::kWord64Shl:
 // case IrOpcode::kWord64Shr:
 // case IrOpcode::kWord64Ror:
-#endif
       case IrOpcode::kStackPointerGreaterThan:
         cont->OverwriteAndNegateIfEqual(kStackPointerGreaterThanCondition);
         return VisitStackPointerGreaterThan(value, cont);
@@ -1710,7 +1715,6 @@ void InstructionSelector::VisitUint32LessThanOrEqual(Node* node) {
   VisitWord32Compare(this, node, &cont);
 }
 
-#if V8_TARGET_ARCH_PPC64
 void InstructionSelector::VisitWord64Equal(Node* const node) {
   FlagsContinuation cont = FlagsContinuation::ForSet(kEqual, node);
   VisitWord64Compare(this, node, &cont);
@@ -1737,7 +1741,6 @@ void InstructionSelector::VisitUint64LessThanOrEqual(Node* node) {
       FlagsContinuation::ForSet(kUnsignedLessThanOrEqual, node);
   VisitWord64Compare(this, node, &cont);
 }
-#endif
 
 void InstructionSelector::VisitInt32MulWithOverflow(Node* node) {
   if (Node* ovf = NodeProperties::FindProjection(node, 1)) {
@@ -1862,15 +1865,19 @@ void InstructionSelector::VisitMemoryBarrier(Node* node) {
 
 void InstructionSelector::VisitWord32AtomicLoad(Node* node) { VisitLoad(node); }
 
+#ifdef V8_TARGET_ARCH_PPC64
 void InstructionSelector::VisitWord64AtomicLoad(Node* node) { VisitLoad(node); }
+#endif
 
 void InstructionSelector::VisitWord32AtomicStore(Node* node) {
   VisitStore(node);
 }
 
+#ifdef V8_TARGET_ARCH_PPC64
 void InstructionSelector::VisitWord64AtomicStore(Node* node) {
   VisitStore(node);
 }
+#endif
 
 void VisitAtomicExchange(InstructionSelector* selector, Node* node,
                          ArchOpcode opcode) {
@@ -1911,6 +1918,7 @@ void InstructionSelector::VisitWord32AtomicExchange(Node* node) {
   VisitAtomicExchange(this, node, opcode);
 }
 
+#ifdef V8_TARGET_ARCH_PPC64
 void InstructionSelector::VisitWord64AtomicExchange(Node* node) {
   ArchOpcode opcode = kArchNop;
   MachineType type = AtomicOpType(node->op());
@@ -1928,6 +1936,7 @@ void InstructionSelector::VisitWord64AtomicExchange(Node* node) {
   }
   VisitAtomicExchange(this, node, opcode);
 }
+#endif
 
 void VisitAtomicCompareExchange(InstructionSelector* selector, Node* node,
                                 ArchOpcode opcode) {
@@ -1974,6 +1983,7 @@ void InstructionSelector::VisitWord32AtomicCompareExchange(Node* node) {
   VisitAtomicCompareExchange(this, node, opcode);
 }
 
+#ifdef V8_TARGET_ARCH_PPC64
 void InstructionSelector::VisitWord64AtomicCompareExchange(Node* node) {
   MachineType type = AtomicOpType(node->op());
   ArchOpcode opcode = kArchNop;
@@ -1991,12 +2001,17 @@ void InstructionSelector::VisitWord64AtomicCompareExchange(Node* node) {
   }
   VisitAtomicCompareExchange(this, node, opcode);
 }
+#endif
 
 void VisitAtomicBinaryOperation(InstructionSelector* selector, Node* node,
                                 ArchOpcode int8_op, ArchOpcode uint8_op,
                                 ArchOpcode int16_op, ArchOpcode uint16_op,
-                                ArchOpcode int32_op, ArchOpcode uint32_op,
-                                ArchOpcode int64_op, ArchOpcode uint64_op) {
+                                ArchOpcode int32_op, ArchOpcode uint32_op
+#if V8_TARGET_ARCH_PPC64
+                                ,
+                                ArchOpcode int64_op, ArchOpcode uint64_op
+#endif
+) {
   PPCOperandGenerator g(selector);
   Node* base = node->InputAt(0);
   Node* index = node->InputAt(1);
@@ -2017,10 +2032,12 @@ void VisitAtomicBinaryOperation(InstructionSelector* selector, Node* node,
     opcode = int32_op;
   } else if (type == MachineType::Uint32()) {
     opcode = uint32_op;
+#if V8_TARGET_ARCH_PPC64
   } else if (type == MachineType::Int64()) {
     opcode = int64_op;
   } else if (type == MachineType::Uint64()) {
     opcode = uint64_op;
+#endif
   } else {
     UNREACHABLE();
     return;
@@ -2056,14 +2073,33 @@ void InstructionSelector::VisitWord64AtomicBinaryOperation(
   UNREACHABLE();
 }
 
-#define VISIT_ATOMIC_BINOP(op)                                     \
+#if V8_TARGET_ARCH_PPC64
+#define VISIT_ATOMIC_BINOP32(
+    op) void InstructionSelector::VisitWord32Atomic##op(Node* node) {
+      VisitAtomicBinaryOperation(
+          this, node, kPPC_Atomic##op##Int8, kPPC_Atomic##op##Uint8,
+          kPPC_Atomic##op##Int16, kPPC_Atomic##op##Uint16,
+          kPPC_Atomic##op##Int32, kPPC_Atomic##op##Uint32,
+          kPPC_Atomic##op##Int64, kPPC_Atomic##op##Uint64);
+    }
+#else
+#define VISIT_ATOMIC_BINOP32(op)                                   \
   void InstructionSelector::VisitWord32Atomic##op(Node* node) {    \
     VisitAtomicBinaryOperation(                                    \
         this, node, kPPC_Atomic##op##Int8, kPPC_Atomic##op##Uint8, \
         kPPC_Atomic##op##Int16, kPPC_Atomic##op##Uint16,           \
-        kPPC_Atomic##op##Int32, kPPC_Atomic##op##Uint32,           \
-        kPPC_Atomic##op##Int64, kPPC_Atomic##op##Uint64);          \
-  }                                                                \
+        kPPC_Atomic##op##Int32, kPPC_Atomic##op##Uint32);          \
+  }
+#endif
+    VISIT_ATOMIC_BINOP32(Add)
+    VISIT_ATOMIC_BINOP32(Sub)
+    VISIT_ATOMIC_BINOP32(And)
+    VISIT_ATOMIC_BINOP32(Or)
+    VISIT_ATOMIC_BINOP32(Xor)
+#undef VISIT_ATOMIC_BINOP32
+
+#ifdef V8_TARGET_ARCH_PPC64
+#define VISIT_ATOMIC_BINOP64(op)                                   \
   void InstructionSelector::VisitWord64Atomic##op(Node* node) {    \
     VisitAtomicBinaryOperation(                                    \
         this, node, kPPC_Atomic##op##Int8, kPPC_Atomic##op##Uint8, \
@@ -2071,16 +2107,17 @@ void InstructionSelector::VisitWord64AtomicBinaryOperation(
         kPPC_Atomic##op##Int32, kPPC_Atomic##op##Uint32,           \
         kPPC_Atomic##op##Int64, kPPC_Atomic##op##Uint64);          \
   }
-VISIT_ATOMIC_BINOP(Add)
-VISIT_ATOMIC_BINOP(Sub)
-VISIT_ATOMIC_BINOP(And)
-VISIT_ATOMIC_BINOP(Or)
-VISIT_ATOMIC_BINOP(Xor)
-#undef VISIT_ATOMIC_BINOP
+    VISIT_ATOMIC_BINOP64(Add)
+    VISIT_ATOMIC_BINOP64(Sub)
+    VISIT_ATOMIC_BINOP64(And)
+    VISIT_ATOMIC_BINOP64(Or)
+    VISIT_ATOMIC_BINOP64(Xor)
+#undef VISIT_ATOMIC_BINOP64
+#endif
 
-void InstructionSelector::VisitInt32AbsWithOverflow(Node* node) {
-  UNREACHABLE();
-}
+    void InstructionSelector::VisitInt32AbsWithOverflow(Node* node) {
+      UNREACHABLE();
+    }
 
 void InstructionSelector::VisitInt64AbsWithOverflow(Node* node) {
   UNREACHABLE();
@@ -2393,6 +2430,7 @@ void InstructionSelector::VisitS8x16Shuffle(Node* node) { UNIMPLEMENTED(); }
 // static
 MachineOperatorBuilder::Flags
 InstructionSelector::SupportedMachineOperatorFlags() {
+#if V8_TARGET_ARCH_PPC64
   return MachineOperatorBuilder::kFloat32RoundDown |
          MachineOperatorBuilder::kFloat64RoundDown |
          MachineOperatorBuilder::kFloat32RoundUp |
@@ -2403,6 +2441,11 @@ InstructionSelector::SupportedMachineOperatorFlags() {
          MachineOperatorBuilder::kWord32Popcnt |
          MachineOperatorBuilder::kWord64Popcnt;
   // We omit kWord32ShiftIsSafe as s[rl]w use 0x3F as a mask rather than 0x1F.
+#else
+return MachineOperatorBuilder::kNoFlags;
+  //return MachineOperatorBuilder::kWord32Popcnt |
+  //       MachineOperatorBuilder::kWord64Popcnt;
+#endif
 }
 
 // static
@@ -2411,6 +2454,122 @@ InstructionSelector::AlignmentRequirements() {
   return MachineOperatorBuilder::AlignmentRequirements::
       FullUnalignedAccessSupport();
 }
+
+#if V8_TARGET_ARCH_PPC
+void InstructionSelector::VisitWord32AtomicPairLoad(Node* node) {
+  PPCOperandGenerator g(this);
+  Node* base = node->InputAt(0);
+  Node* offset = node->InputAt(1);
+  InstructionCode opcode = kPPC_AtomicPairLoadWord32;
+
+  if (node->opcode() == IrOpcode::kPoisonedLoad &&
+      poisoning_level_ != PoisoningMitigationLevel::kDontPoison) {
+    opcode |= MiscField::encode(kMemoryAccessPoisoned);
+  }
+
+  Node* projection0 = NodeProperties::FindProjection(node, 0);
+  Node* projection1 = NodeProperties::FindProjection(node, 1);
+
+  InstructionOperand inputs[] = {g.UseUniqueRegister(base),
+                                 g.UseUniqueRegister(offset)};
+
+  InstructionOperand outputs[] = {g.DefineAsFixed(projection0, r3),
+                                  g.DefineAsFixed(projection1, r4)};
+
+  InstructionOperand temps[] = {g.TempRegister()};
+
+  Emit(opcode, arraysize(outputs), outputs, arraysize(inputs), inputs,
+       arraysize(temps), temps);
+}
+
+void InstructionSelector::VisitWord32AtomicPairStore(Node* node) {
+  PPCOperandGenerator g(this);
+  Node* base = node->InputAt(0);
+  Node* offset = node->InputAt(1);
+  Node* value_low = node->InputAt(2);
+  Node* value_high = node->InputAt(3);
+
+  InstructionCode opcode = kPPC_AtomicPairStoreWord32;
+
+  InstructionOperand inputs[] = {
+      g.UseUniqueRegister(base), g.UseUniqueRegister(offset),
+      g.UseUniqueRegister(value_low), g.UseUniqueRegister(value_high)};
+
+  InstructionOperand temps[] = {g.TempRegister(), g.TempRegister()};
+
+  Emit(opcode, 0, nullptr, arraysize(inputs), inputs, arraysize(temps), temps);
+}
+
+void VisitWord32AtomicPairBinOp(InstructionSelector* selector, Node* node,
+                                ArchOpcode opcode) {
+  PPCOperandGenerator g(selector);
+  Node* base = node->InputAt(0);
+  Node* offset = node->InputAt(1);
+  Node* value_low = node->InputAt(2);
+  Node* value_high = node->InputAt(3);
+
+  InstructionCode code = opcode;
+
+  InstructionOperand inputs[] = {
+      g.UseFixed(value_low, r3), g.UseFixed(value_high, r4),
+      g.UseUniqueRegister(base), g.UseUniqueRegister(offset)};
+
+  Node* projection0 = NodeProperties::FindProjection(node, 0);
+  Node* projection1 = NodeProperties::FindProjection(node, 1);
+
+  InstructionOperand outputs[] = {g.DefineAsFixed(projection0, r3),
+                                  g.DefineAsFixed(projection1, r4)};
+
+  InstructionOperand temps[] = {g.TempRegister()};
+
+  selector->Emit(code, arraysize(outputs), outputs, arraysize(inputs), inputs,
+                 arraysize(temps), temps);
+}
+
+void InstructionSelector::VisitWord32AtomicPairAdd(Node* node) {
+  VisitWord32AtomicPairBinOp(this, node, kPPC_AtomicPairAddWord32);
+}
+
+void InstructionSelector::VisitWord32AtomicPairSub(Node* node) {
+  VisitWord32AtomicPairBinOp(this, node, kPPC_AtomicPairSubWord32);
+}
+
+void InstructionSelector::VisitWord32AtomicPairAnd(Node* node) {
+  VisitWord32AtomicPairBinOp(this, node, kPPC_AtomicPairAndWord32);
+}
+
+void InstructionSelector::VisitWord32AtomicPairOr(Node* node) {
+  VisitWord32AtomicPairBinOp(this, node, kPPC_AtomicPairOrWord32);
+}
+
+void InstructionSelector::VisitWord32AtomicPairXor(Node* node) {
+  VisitWord32AtomicPairBinOp(this, node, kPPC_AtomicPairXorWord32);
+}
+
+void InstructionSelector::VisitWord32AtomicPairExchange(Node* node) {
+  VisitWord32AtomicPairBinOp(this, node, kPPC_AtomicPairExchangeWord32);
+}
+
+void InstructionSelector::VisitWord32AtomicPairCompareExchange(Node* node) {
+  PPCOperandGenerator g(this);
+  AddressingMode addressing_mode = kMode_MRI;
+  InstructionOperand inputs[] = {g.UseFixed(node->InputAt(2), r5),
+                                 g.UseFixed(node->InputAt(3), r6),
+                                 g.UseFixed(node->InputAt(4), r7),
+                                 g.UseFixed(node->InputAt(5), r8),
+                                 g.UseUniqueRegister(node->InputAt(0)),
+                                 g.UseUniqueRegister(node->InputAt(1))};
+  InstructionCode code = kPPC_AtomicPairCompareExchangeWord32 |
+                         AddressingModeField::encode(addressing_mode);
+  Node* projection0 = NodeProperties::FindProjection(node, 0);
+  Node* projection1 = NodeProperties::FindProjection(node, 1);
+  InstructionOperand outputs[] = {g.DefineAsFixed(projection0, r3),
+                                  g.DefineAsFixed(projection1, r4)};
+  InstructionOperand temps[] = {g.TempRegister(), g.TempRegister()};
+  Emit(code, arraysize(outputs), outputs, arraysize(inputs), inputs,
+       arraysize(temps), temps);
+}
+#endif
 
 }  // namespace compiler
 }  // namespace internal

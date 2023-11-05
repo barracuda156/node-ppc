@@ -20,7 +20,7 @@
 #define UNIMPLEMENTED_PPC()
 #endif
 
-#if V8_HOST_ARCH_PPC &&                                            \
+#if (V8_HOST_ARCH_PPC || V8_HOST_ARCH_PPC64) &&                    \
     (V8_OS_AIX || (V8_TARGET_ARCH_PPC64 && V8_TARGET_BIG_ENDIAN && \
                    (!defined(_CALL_ELF) || _CALL_ELF == 1)))
 #define ABI_USES_FUNCTION_DESCRIPTORS 1
@@ -28,28 +28,30 @@
 #define ABI_USES_FUNCTION_DESCRIPTORS 0
 #endif
 
-#if !V8_HOST_ARCH_PPC || V8_OS_AIX || V8_TARGET_ARCH_PPC64
+#if !(V8_HOST_ARCH_PPC || V8_HOST_ARCH_PPC64) || V8_OS_AIX || \
+    V8_TARGET_ARCH_PPC64
 #define ABI_PASSES_HANDLES_IN_REGS 1
 #else
 #define ABI_PASSES_HANDLES_IN_REGS 0
 #endif
 
-#if !V8_HOST_ARCH_PPC || !V8_TARGET_ARCH_PPC64 || V8_TARGET_LITTLE_ENDIAN || \
-    (defined(_CALL_ELF) && _CALL_ELF == 2)
+#if !(V8_HOST_ARCH_PPC || V8_HOST_ARCH_PPC64) || !V8_TARGET_ARCH_PPC64 || \
+    V8_TARGET_LITTLE_ENDIAN || (defined(_CALL_ELF) && _CALL_ELF == 2)
 #define ABI_RETURNS_OBJECT_PAIRS_IN_REGS 1
 #else
 #define ABI_RETURNS_OBJECT_PAIRS_IN_REGS 0
 #endif
 
-#if !V8_HOST_ARCH_PPC ||     \
-    (V8_TARGET_ARCH_PPC64 && \
+#if !(V8_HOST_ARCH_PPC || V8_HOST_ARCH_PPC64) || \
+    (V8_TARGET_ARCH_PPC64 &&                     \
      (V8_TARGET_LITTLE_ENDIAN || (defined(_CALL_ELF) && _CALL_ELF == 2)))
 #define ABI_CALL_VIA_IP 1
 #else
 #define ABI_CALL_VIA_IP 0
 #endif
 
-#if !V8_HOST_ARCH_PPC || V8_OS_AIX || V8_TARGET_ARCH_PPC64
+#if !(V8_HOST_ARCH_PPC || V8_HOST_ARCH_PPC64) || V8_OS_AIX || \
+    V8_TARGET_ARCH_PPC64
 #define ABI_TOC_REGISTER 2
 #else
 #define ABI_TOC_REGISTER 13
@@ -1136,7 +1138,7 @@ using Instr = uint32_t;
   V(and_, ANDX, 0x7C000038)              \
   /* AND with Complement */              \
   V(andc, ANDCX, 0x7C000078)             \
-  /* OR */                               \
+  /* OR with Complement */               \
   V(orx, ORX, 0x7C000378)                \
   /* OR with Complement */               \
   V(orc, ORC, 0x7C000338)                \
@@ -1176,7 +1178,7 @@ using Instr = uint32_t;
   V(lhbrx, LHBRX, 0x7C00062C)                           \
   /* Load Word Byte-Reverse Indexed */                  \
   V(lwbrx, LWBRX, 0x7C00042C)                           \
-  /* Load Doubleword Byte-Reverse Indexed */            \
+  /* Load Byte and Zero Indexed */                      \
   V(ldbrx, LDBRX, 0x7C000428)                           \
   /* Load Byte and Zero Indexed */                      \
   V(lbzx, LBZX, 0x7C0000AE)                             \
@@ -1240,7 +1242,7 @@ using Instr = uint32_t;
   V(cmpl, CMPL, 0x7C000040)
 
 #define PPC_X_OPCODE_EH_S_FORM_LIST(V)                    \
-  /* Store Byte Conditional Indexed */                    \
+  /* Store Word Conditional Indexed & record CR0 */       \
   V(stbcx, STBCX, 0x7C00056D)                             \
   /* Store Halfword Conditional Indexed Xform */          \
   V(sthcx, STHCX, 0x7C0005AD)                             \
@@ -1260,7 +1262,7 @@ using Instr = uint32_t;
   V(ldarx, LDARX, 0x7C0000A8)
 
 #define PPC_X_OPCODE_UNUSED_LIST(V)                                           \
-  /* Bit Permute Doubleword */                                                \
+  /* Move To Condition Register from FPSCR */                                 \
   V(bpermd, BPERMD, 0x7C0001F8)                                               \
   /* Extend Sign Word */                                                      \
   V(extsw, EXTSW, 0x7C0007B4)                                                 \
@@ -1292,7 +1294,7 @@ using Instr = uint32_t;
   V(eqv, EQV, 0x7C000238)                                                     \
   /* Instruction Cache Block Invalidate */                                    \
   V(icbi, ICBI, 0x7C0007AC)                                                   \
-  /* NAND */                                                                  \
+  /* Synchronize */                                                           \
   V(nand, NAND, 0x7C0003B8)                                                   \
   /* Parity Word */                                                           \
   V(prtyw, PRTYW, 0x7C000134)                                                 \
@@ -1518,7 +1520,7 @@ using Instr = uint32_t;
   V(stfdpx, STFDPX, 0x7C00072E)                                               \
   /* Floating Absolute Value */                                               \
   V(fabs, FABS, 0xFC000210)                                                   \
-  /* Floating Convert From Integer Doubleword */                              \
+  /* Floating Convert To Integer Word */                                      \
   V(fcfid, FCFID, 0xFC00069C)                                                 \
   /* Floating Convert From Integer Doubleword Single */                       \
   V(fcfids, FCFIDS, 0xEC00069C)                                               \
@@ -1539,7 +1541,7 @@ using Instr = uint32_t;
   V(fctidz, FCTIDZ, 0xFC00065E)                                               \
   /* Floating Convert To Integer Word */                                      \
   V(fctiw, FCTIW, 0xFC00001C)                                                 \
-  /* Floating Convert To Integer Word Unsigned */                             \
+  /* Floating Convert To Integer Word with round to Zero */                   \
   V(fctiwu, FCTIWU, 0xFC00011C)                                               \
   /* Floating Convert To Integer Word Unsigned with round toward Zero */      \
   V(fctiwuz, FCTIWUZ, 0xFC00011E)                                             \
@@ -1547,13 +1549,13 @@ using Instr = uint32_t;
   V(fctiwz, FCTIWZ, 0xFC00001E)                                               \
   /* Floating Move Register */                                                \
   V(fmr, FMR, 0xFC000090)                                                     \
-  /* Floating Negative Absolute Value */                                      \
+  /* Floating Negate */                                                       \
   V(fnabs, FNABS, 0xFC000110)                                                 \
   /* Floating Negate */                                                       \
   V(fneg, FNEG, 0xFC000050)                                                   \
   /* Floating Round to Single-Precision */                                    \
   V(frsp, FRSP, 0xFC000018)                                                   \
-  /* Move From FPSCR */                                                       \
+  /* Move To FPSCR Bit 0 */                                                   \
   V(mffs, MFFS, 0xFC00048E)                                                   \
   /* Move To FPSCR Bit 0 */                                                   \
   V(mtfsb0, MTFSB0, 0xFC00008C)                                               \
@@ -1749,17 +1751,17 @@ using Instr = uint32_t;
 #define PPC_DQ_OPCODE_LIST(V) V(lsq, LSQ, 0xE0000000)
 
 #define PPC_D_OPCODE_LIST(V)                    \
-  /* Trap Doubleword Immediate */               \
+  /* Add Immediate */                           \
   V(tdi, TDI, 0x08000000)                       \
   /* Add Immediate */                           \
   V(addi, ADDI, 0x38000000)                     \
   /* Add Immediate Carrying */                  \
   V(addic, ADDIC, 0x30000000)                   \
-  /* Add Immediate Carrying & record CR0 */     \
+  /* Add Immediate Shifted */                   \
   V(addicx, ADDICx, 0x34000000)                 \
   /* Add Immediate Shifted */                   \
   V(addis, ADDIS, 0x3C000000)                   \
-  /* AND Immediate & record CR0 */              \
+  /* Compare Immediate */                       \
   V(andix, ANDIx, 0x70000000)                   \
   /* AND Immediate Shifted & record CR0 */      \
   V(andisx, ANDISx, 0x74000000)                 \
@@ -1843,17 +1845,17 @@ using Instr = uint32_t;
   V(mfspr, MFSPR, 0x7C0002A6)                   \
   /* Move To Condition Register Fields */       \
   V(mtcrf, MTCRF, 0x7C000120)                   \
-  /* Move To One Condition Register Field */    \
+  /* Move To Special Purpose Register */        \
   V(mtocrf, MTOCRF, 0x7C100120)                 \
   /* Move To Special Purpose Register */        \
   V(mtspr, MTSPR, 0x7C0003A6)                   \
-  /* Debugger Notify Halt */                    \
+  /* Move From Device Control Register */       \
   V(dnh, DNH, 0x4C00018C)                       \
   /* Move From Device Control Register */       \
   V(mfdcr, MFDCR, 0x7C000286)                   \
   /* Move To Device Control Register */         \
   V(mtdcr, MTDCR, 0x7C000386)                   \
-  /* Move from Performance Monitor Register */  \
+  /* Move From Branch History Rolling Buffer */ \
   V(mfpmr, MFPMR, 0x7C00029C)                   \
   /* Move To Performance Monitor Register */    \
   V(mtpmr, MTPMR, 0x7C00039C)                   \
@@ -1905,7 +1907,7 @@ using Instr = uint32_t;
   V(frsqrte, FRSQRTE, 0xFC000034)                       \
   /* Floating Select */                                 \
   V(fsel, FSEL, 0xFC00002E)                             \
-  /* Floating Square Root */                            \
+  /* Floating Subtract */                               \
   V(fsqrt, FSQRT, 0xFC00002C)                           \
   /* Floating Square Root Single */                     \
   V(fsqrts, FSQRTS, 0xEC00002C)                         \
@@ -1993,7 +1995,7 @@ using Instr = uint32_t;
   V(bc, BCX, 0x40000000)
 
 #define PPC_XO_OPCODE_LIST(V)                                               \
-  /* Divide Doubleword */                                                   \
+  /* Add */                                                                 \
   V(divd, DIVD, 0x7C0003D2)                                                 \
   /* Divide Doubleword Extended */                                          \
   V(divde, DIVDE, 0x7C000352)                                               \
@@ -2039,7 +2041,7 @@ using Instr = uint32_t;
   V(addzeo, ADDZEO, 0x7C000594)                                             \
   /* Divide Word Format */                                                  \
   V(divw, DIVW, 0x7C0003D6)                                                 \
-  /* Divide Word Extended */                                                \
+  /* Divide Word & record OV */                                             \
   V(divwe, DIVWE, 0x7C000356)                                               \
   /* Divide Word Extended & record OV */                                    \
   V(divweo, DIVWEO, 0x7C000756)                                             \
@@ -2085,7 +2087,7 @@ using Instr = uint32_t;
   V(subfze, SUBFZE, 0x7C000190)                                             \
   /* Subtract From Zero Extended & record OV */                             \
   V(subfzeo, SUBFZEO, 0x7C000590)                                           \
-  /* Add and Generate Sixes */                                              \
+  /* Multiply Accumulate Cross Halfword to Word Modulo Signed */            \
   V(addg, ADDG, 0x7C000094)                                                 \
   /* Multiply Accumulate Cross Halfword to Word Modulo Signed */            \
   V(macchw, MACCHW, 0x10000158)                                             \
@@ -2989,6 +2991,11 @@ class DoubleRegisters {
  private:
   static const char* names_[kNumDoubleRegisters];
 };
+
+static constexpr int kR0DwarfCode = 0;
+static constexpr int kFpDwarfCode = 31;  // frame-pointer
+static constexpr int kLrDwarfCode = 65;  // return-address(lr)
+static constexpr int kSpDwarfCode = 1;   // stack-pointer (sp)
 }  // namespace internal
 }  // namespace v8
 

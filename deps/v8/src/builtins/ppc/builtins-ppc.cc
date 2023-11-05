@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#if V8_TARGET_ARCH_PPC
+#if V8_TARGET_ARCH_PPC || V8_TARGET_ARCH_PPC64
 
 #include "src/api/api-arguments.h"
 #include "src/codegen/code-factory.h"
@@ -2807,7 +2807,7 @@ void Builtins::Generate_CEntry(MacroAssembler* masm, int result_size,
 }
 
 void Builtins::Generate_DoubleToI(MacroAssembler* masm) {
-  Label out_of_range, only_low, negate, done, fastpath_done;
+  Label out_of_range, only_low, negate, done, fastpath_done, conv_inv, conv_ok;
   Register result_reg = r3;
 
   HardAbortScope hard_abort(masm);  // Avoid calls to Abort.
@@ -2818,7 +2818,11 @@ void Builtins::Generate_DoubleToI(MacroAssembler* masm) {
   Register scratch_high =
       GetRegisterThatIsNotOneOf(result_reg, scratch, scratch_low);
   DoubleRegister double_scratch = kScratchDoubleReg;
-
+#if !V8_TARGET_ARCH_PPC64
+  CRegister cr = cr7;
+  int crbit = v8::internal::Assembler::encode_crbit(
+      cr, static_cast<CRBit>(VXCVI % CRWIDTH));
+#endif
   __ Push(result_reg, scratch);
   // Account for saved regs.
   int argument_offset = 2 * kPointerSize;
@@ -2827,17 +2831,20 @@ void Builtins::Generate_DoubleToI(MacroAssembler* masm) {
   __ lfd(double_scratch, MemOperand(sp, argument_offset));
 
   // Do fast-path convert from double to int.
-  __ ConvertDoubleToInt64(double_scratch,
 #if !V8_TARGET_ARCH_PPC64
-                          scratch,
-#endif
-                          result_reg, d0);
-
-// Test for overflow
-#if V8_TARGET_ARCH_PPC64
-  __ TestIfInt32(result_reg, r0);
+  __ mtfsb0(VXCVI);
+  __ ConvertDoubleToInt32NoPPC64(double_scratch, result_reg, scratch);
+  __ mcrfs(cr, VXCVI);
+  __ bc(__ branch_offset(&conv_inv), BT, crbit);
+  __ addi(scratch, result_reg, Operand(0));
+  __ b(&conv_ok);
+  __ bind(&conv_inv);
+  __ addi(scratch, result_reg, Operand(1));
+  __ bind(&conv_ok);
+  __ cmp(scratch, result_reg, cr);
 #else
-  __ TestIfInt32(scratch, result_reg, r0);
+  __ ConvertDoubleToInt64(double_scratch, result_reg, d0);
+  __ TestIfInt32(result_reg, r0);
 #endif
   __ beq(&fastpath_done);
 
@@ -3337,4 +3344,4 @@ void Builtins::Generate_DirectCEntry(MacroAssembler* masm) {
 }  // namespace internal
 }  // namespace v8
 
-#endif  // V8_TARGET_ARCH_PPC
+#endif  // V8_TARGET_ARCH_PPC64 || V8_TARGET_ARCH_PPC64
