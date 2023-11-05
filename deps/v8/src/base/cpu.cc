@@ -31,6 +31,15 @@
 #define POWER_10 0x40000
 #endif
 #endif
+#if V8_OS_MACOSX
+#include <sys/sysctl.h>  // sysctlbyname
+#if V8_HOST_ARCH_PPC || V8_HOST_ARCH_PPC64
+#include <mach/mach.h>
+#include <mach/mach_host.h>
+#include <mach/host_info.h>
+#include <mach/machine.h>
+#endif
+#endif
 #if V8_OS_POSIX
 #include <unistd.h>  // sysconf()
 #endif
@@ -687,7 +696,23 @@ CPU::CPU()
       part_ = PPC_POWER5;
       break;
   }
-#endif  // V8_OS_AIX
+
+#elif V8_OS_MACOSX
+  struct host_basic_info host_basic_info;
+  switch(host_basic_info.cpu_subtype) {
+    case CPU_SUBTYPE_POWERPC_970:
+    default:
+      part_ = PPC_G5;
+      break;
+    case CPU_SUBTYPE_POWERPC_7450:
+      part_ = PPC_G4;
+      break;
+    case CPU_SUBTYPE_POWERPC_7400:
+      part_ = PPC_G4;
+      break;
+  }
+
+#endif  // V8_OS_MACOSX
 #endif  // !USE_SIMULATOR
 #endif  // V8_HOST_ARCH_PPC || V8_HOST_ARCH_PPC64
 }
