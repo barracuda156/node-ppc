@@ -30,7 +30,7 @@
 
 #include "src/inspector/v8-runtime-agent-impl.h"
 
-#include <inttypes.h>
+#include <cinttypes>
 
 #include "src/debug/debug-interface.h"
 #include "src/inspector/injected-script.h"
