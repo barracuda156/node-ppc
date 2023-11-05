@@ -952,7 +952,9 @@ def host_arch_cc():
     '__MIPSEL__'  : 'mipsel',
     '__mips__'    : 'mips',
     '__PPC64__'   : 'ppc64',
-    '__PPC__'     : 'ppc64',
+    '__ppc64__'   : 'ppc64',
+    '__PPC__'     : 'ppc',
+    '__ppc__'     : 'ppc',
     '__x86_64__'  : 'x64',
     '__s390x__'   : 's390x',
   }

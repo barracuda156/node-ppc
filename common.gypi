@@ -132,8 +132,11 @@
       }, {
         'openssl_product': '<(STATIC_LIB_PREFIX)openssl<(STATIC_LIB_SUFFIX)',
       }],
-      ['OS=="mac"', {
+      ['OS=="mac" and target_arch!="ppc" and target_arch!="ppc64"', {
         'clang%': 1,
+      }],
+      ['target_arch in "arm mips ppc"', {
+        'ldflags': [ '-latomic' ]
       }],
       ['target_arch in "ppc64 s390x"', {
         'v8_enable_backtrace': 1,
@@ -461,7 +464,7 @@
         ],
       }],
       ['OS=="mac"', {
-        'defines': ['_DARWIN_USE_64_BIT_INODE=1'],
+        'defines': ['__STDC_FORMAT_MACROS', '_DARWIN_C_SOURCE'],
         'xcode_settings': {
           'ALWAYS_SEARCH_USER_PATHS': 'NO',
           'GCC_CW_ASM_SYNTAX': 'NO',                # No -fasm-blocks
@@ -471,10 +474,10 @@
           'GCC_ENABLE_CPP_RTTI': 'NO',              # -fno-rtti
           'GCC_ENABLE_PASCAL_STRINGS': 'NO',        # No -mpascal-strings
           'PREBINDING': 'NO',                       # No -Wl,-prebind
-          'MACOSX_DEPLOYMENT_TARGET': '10.10',      # -mmacosx-version-min=10.10
           'USE_HEADERMAP': 'NO',
           'OTHER_CFLAGS': [
             '-fno-strict-aliasing',
+            '-fpermissive',
           ],
           'WARNING_CFLAGS': [
             '-Wall',
@@ -500,19 +503,18 @@
           ['target_arch=="x64"', {
             'xcode_settings': {'ARCHS': ['x86_64']},
           }],
+          ['target_arch=="ppc"', {
+            'xcode_settings': {'ARCHS': ['ppc']},
+          }],
+          ['target_arch=="ppc64"', {
+            'xcode_settings': {'ARCHS': ['ppc64']},
+          }],
           ['target_arch=="arm64"', {
             'xcode_settings': {
               'ARCHS': ['arm64'],
               'OTHER_LDFLAGS!': [
                 '-Wl,-no_pie',
               ],
-            },
-          }],
-          ['clang==1', {
-            'xcode_settings': {
-              'GCC_VERSION': 'com.apple.compilers.llvm.clang.1_0',
-              'CLANG_CXX_LANGUAGE_STANDARD': 'gnu++1y',  # -std=gnu++1y
-              'CLANG_CXX_LIBRARY': 'libc++',
             },
           }],
         ],

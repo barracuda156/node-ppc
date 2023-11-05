@@ -26,9 +26,6 @@
   },
 
   'conditions': [
-    [ 'clang==1', {
-      'cflags': [ '-Werror=undefined-inline', ]
-    }],
     [ 'node_shared=="false" and "<(_type)"=="executable"', {
       'msvs_settings': {
         'VCManifestTool': {

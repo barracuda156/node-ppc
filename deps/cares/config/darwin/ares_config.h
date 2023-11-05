@@ -354,7 +354,7 @@
 /* #undef NEED_THREAD_SAFE */
 
 /* cpu-machine-OS */
-#define OS "x86_64-apple-darwin16.7.0"
+/* #define OS "x86_64-apple-darwin16.7.0" */
 
 /* Name of package */
 #define PACKAGE "c-ares"

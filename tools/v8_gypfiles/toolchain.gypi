@@ -291,10 +291,12 @@
           ],
       }],  # s390x
       ['v8_target_arch=="ppc" or v8_target_arch=="ppc64"', {
-        'defines': [
-          'V8_TARGET_ARCH_PPC',
-        ],
         'conditions': [
+          ['v8_target_arch=="ppc"', {
+            'defines': [
+              'V8_TARGET_ARCH_PPC',
+            ],
+          }],
           ['v8_target_arch=="ppc64"', {
             'defines': [
               'V8_TARGET_ARCH_PPC64',
@@ -1011,7 +1013,7 @@
               }],
             ],
             'xcode_settings': {
-              'ARCHS': [ 'i386' ],
+              'ARCHS': [ 'ppc' ],
             },
           }],
           ['_toolset=="target"', {
@@ -1029,12 +1031,12 @@
               }],
             ],
             'xcode_settings': {
-              'ARCHS': [ 'i386' ],
+              'ARCHS': [ 'ppc' ],
             },
           }],
         ],
       }],
-      ['(OS=="linux" or OS=="android") and \
+      ['(OS=="linux" or OS=="mac" or OS=="android") and \
         (v8_target_arch=="x64" or v8_target_arch=="arm64" or \
          v8_target_arch=="ppc64" or v8_target_arch=="s390x")', {
         'target_conditions': [
@@ -1045,6 +1047,9 @@
                 'ldflags': [ '-m64' ]
               }],
              ],
+             'xcode_settings': {
+               'ARCHS': [ 'ppc64' ],
+             },
            }],
           ['_toolset=="target"', {
              'conditions': [
@@ -1052,7 +1057,10 @@
                  'cflags': [ '-m64' ],
                  'ldflags': [ '-m64' ],
                }],
-             ]
+             ],
+             'xcode_settings': {
+               'ARCHS': [ 'ppc64' ],
+             },
            }],
          ],
       }],
